@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riviera Flow — Créer un ticket</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      padding: 24px;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .logo span {
+      color: #6c63ff;
+    }
+
+    .logo p {
+      color: #888;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    /* Auth screen */
+    #auth-screen, #ticket-screen {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 32px;
+    }
+
+    #ticket-screen { display: none; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #aaa;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="password"],
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px 14px;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: #6c63ff;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    .field { margin-bottom: 20px; }
+
+    .row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .row .field { flex: 1; }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #5a52d5; }
+    button:disabled {
+      background: #333;
+      color: #666;
+      cursor: not-allowed;
+    }
+
+    .error {
+      background: #2d1515;
+      border: 1px solid #5c2020;
+      color: #ff6b6b;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+      word-break: break-word;
+    }
+
+    .success-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .success-overlay.visible {
+      display: flex;
+    }
+
+    .success-box {
+      background: #1a2e1a;
+      border: 1px solid #2d5a2d;
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+      max-width: 360px;
+    }
+
+    .success-box .check {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .success-box h2 {
+      color: #4ade80;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .success-box p {
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .success-box button {
+      background: #2d5a2d;
+    }
+
+    .success-box button:hover {
+      background: #3a7a3a;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Auth -->
+  <div class="container" id="auth-container">
+    <div class="logo">
+      <h1><span>Riviera Flow</span> — Tickets</h1>
+      <p>Créer un ticket pour l'équipe dev</p>
+    </div>
+
+    <div id="auth-screen">
+      <div class="error" id="auth-error"></div>
+      <div class="field">
+        <label for="password">Mot de passe</label>
+        <input type="password" id="password" placeholder="Entrez le mot de passe" autofocus>
+      </div>
+      <button id="auth-btn" onclick="authenticate()">Accéder</button>
+    </div>
+
+    <div id="ticket-screen">
+      <div class="error" id="ticket-error"></div>
+
+      <div class="field">
+        <label for="title">Titre</label>
+        <input type="text" id="title" placeholder="Ex: Bug — Le bouton login ne répond pas">
+      </div>
+
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea id="description" placeholder="Décrivez le bug ou la feature en détail..."></textarea>
+      </div>
+
+      <div class="field">
+        <label for="priority">Priorité</label>
+        <select id="priority">
+          <option value="3">Low</option>
+          <option value="2" selected>Medium</option>
+          <option value="1">High</option>
+          <option value="0">Urgent</option>
+        </select>
+      </div>
+
+      <button id="submit-btn" onclick="createTicket()">Créer le ticket</button>
+    </div>
+  </div>
+
+  <!-- Success popup -->
+  <div class="success-overlay" id="success-overlay">
+    <div class="success-box">
+      <div class="check">&#10003;</div>
+      <h2>Ticket créé !</h2>
+      <p>Merci à vous.</p>
+      <button onclick="closeSuccess()">OK</button>
+    </div>
+  </div>
+
+  <script>
+    let authedPassword = null;
+
+    // Enter key support
+    document.getElementById('password').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') authenticate();
+    });
+
+    function authenticate() {
+      const pwd = document.getElementById('password').value.trim();
+      const errEl = document.getElementById('auth-error');
+
+      if (!pwd) {
+        errEl.textContent = 'Veuillez entrer le mot de passe.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      // Store password, show ticket form
+      authedPassword = pwd;
+      errEl.style.display = 'none';
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('ticket-screen').style.display = 'block';
+      document.getElementById('title').focus();
+    }
+
+    async function createTicket() {
+      const title = document.getElementById('title').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const priority = document.getElementById('priority').value;
+      const errEl = document.getElementById('ticket-error');
+      const btn = document.getElementById('submit-btn');
+
+      // Validation
+      if (!title || !description) {
+        errEl.textContent = 'Titre et description sont obligatoires.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      errEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Création en cours...';
+
+      try {
+        const res = await fetch('/create-ticket', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            password: authedPassword,
+            title,
+            description,
+            priority: parseInt(priority)
+          })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || `Erreur HTTP ${res.status}`);
+        }
+
+        // Success
+        document.getElementById('success-overlay').classList.add('visible');
+
+      } catch (err) {
+        errEl.textContent = `Erreur : ${err.message}`;
+        errEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Créer le ticket';
+      }
+    }
+
+    function closeSuccess() {
+      document.getElementById('success-overlay').classList.remove('visible');
+      // Reset form
+      document.getElementById('title').value = '';
+      document.getElementById('description').value = '';
+      document.getElementById('priority').value = '2';
+      document.getElementById('title').focus();
+    }
+  </script>
+</body>
+</html>
