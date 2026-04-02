@@ -5,7 +5,7 @@ export async function onRequestPost(context) {
 
   try {
     const body = await context.request.json();
-    const { password } = body;
+    const { password, projectId } = body;
 
     // --- Auth check ---
     if (!password || password !== env.APP_PASSWORD) {
@@ -15,8 +15,15 @@ export async function onRequestPost(context) {
       );
     }
 
-    // IDs depuis env vars avec fallback
-    const PROJECT_ID = env.LINEAR_PROJECT_ID || 'bbdb4db3-1222-4e59-a521-e41ee3433b9c';
+    // --- Validation projectId ---
+    if (!projectId || typeof projectId !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Project ID manquant.' }),
+        { status: 400, headers }
+      );
+    }
+
+    const PROJECT_ID = projectId;
     const LABEL_VISU_CLIENT = env.LINEAR_LABEL_VISU || '0bcea0c2-e93b-47b4-aae2-b5ba4fd0f25a';
 
     const query = `

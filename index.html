@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Riviera Flow — Créer un ticket</title>
+  <title>Riviera Flow — Tickets</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -28,6 +28,7 @@
     .logo h1 { font-size: 24px; font-weight: 700; color: #fff; }
     .logo span { color: #6c63ff; }
     .logo p { color: #888; font-size: 14px; margin-top: 4px; }
+    .logo .project-name { color: #6c63ff; font-weight: 600; }
 
     #auth-screen, #ticket-screen {
       background: #1a1a1a;
@@ -189,9 +190,7 @@
     }
     .detail-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
-    .detail-header {
-      padding: 24px 24px 0;
-    }
+    .detail-header { padding: 24px 24px 0; }
 
     .detail-id {
       font-size: 12px; color: #555; font-family: monospace;
@@ -213,23 +212,16 @@
       margin: 20px 24px 0; border-radius: 8px; overflow: hidden;
       border: 1px solid #2a2a2a;
     }
-    .detail-image img {
-      width: 100%; display: block;
-      background: #111;
-    }
+    .detail-image img { width: 100%; display: block; background: #111; }
 
-    .detail-body {
-      padding: 20px 24px 24px;
-    }
+    .detail-body { padding: 20px 24px 24px; }
 
     .detail-description {
       font-size: 15px; color: #ccc; line-height: 1.6;
       white-space: pre-wrap;
     }
 
-    .detail-checkbox-list {
-      list-style: none; padding: 0; margin: 0;
-    }
+    .detail-checkbox-list { list-style: none; padding: 0; margin: 0; }
 
     .detail-checkbox-item {
       display: flex; align-items: flex-start; gap: 10px;
@@ -245,6 +237,26 @@
     .detail-checkbox-item.checked span {
       text-decoration: line-through; color: #666;
     }
+
+    /* Landing page (no project selected) */
+    .landing {
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 12px; padding: 40px 32px;
+      text-align: center;
+    }
+
+    .landing h2 {
+      font-size: 18px; color: #fff; margin-bottom: 12px;
+    }
+
+    .landing p {
+      color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 8px;
+    }
+
+    .landing code {
+      background: #111; padding: 2px 8px; border-radius: 4px;
+      font-size: 13px; color: #6c63ff;
+    }
   </style>
 </head>
 <body>
@@ -252,10 +264,20 @@
   <div class="container">
     <div class="logo">
       <h1><span>Riviera Flow</span> — Tickets</h1>
-      <p>Créer un ticket pour l'équipe dev</p>
+      <p id="subtitle">Créer un ticket pour l'équipe dev</p>
     </div>
 
-    <div id="auth-screen">
+    <!-- Landing : aucun projet sélectionné -->
+    <div id="landing-screen" style="display:none">
+      <div class="landing">
+        <h2>Aucun projet sélectionné</h2>
+        <p>Pour créer un ticket, rendez-vous sur la page d'un projet :</p>
+        <p><code>tickets.rivieraflow.com/<strong>nomduprojet</strong></code></p>
+      </div>
+    </div>
+
+    <!-- Auth -->
+    <div id="auth-screen" style="display:none">
       <div class="error" id="auth-error"></div>
       <div class="field">
         <label for="password">Mot de passe</label>
@@ -264,7 +286,8 @@
       <button id="auth-btn" onclick="authenticate()">Accéder</button>
     </div>
 
-    <div id="ticket-screen">
+    <!-- Formulaire ticket -->
+    <div id="ticket-screen" style="display:none">
       <div class="error" id="ticket-error"></div>
 
       <div class="field">
@@ -280,7 +303,7 @@
         </div>
         <div id="preview-container">
           <img id="preview-img" src="" alt="Aperçu">
-          <button type="button" id="remove-img" onclick="removeImage()">✕</button>
+          <button type="button" id="remove-img" onclick="removeImage()">&#10005;</button>
         </div>
       </div>
 
@@ -302,7 +325,8 @@
       <button id="submit-btn" onclick="createTicket()">Créer le ticket</button>
     </div>
 
-    <div id="tickets-section">
+    <!-- Tickets -->
+    <div id="tickets-section" style="display:none">
       <div class="section-title">Tickets en cours</div>
       <div id="tickets-list">
         <div class="tickets-loading">Chargement des tickets...</div>
@@ -339,16 +363,65 @@
   </div>
 
   <script>
+    // --- State ---
     let authedPassword = null;
     let screenshotBase64 = null;
     let screenshotFilename = null;
     let screenshotContentType = null;
     let ticketsData = [];
+    let currentProject = null; // { slug, name, projectId }
 
     const PRIORITY_LABELS = { 0: 'Urgent', 1: 'High', 2: 'Medium', 3: 'Low', 4: 'None' };
     const MAX_TITLE_LENGTH = 200;
     const MAX_DESCRIPTION_LENGTH = 5000;
-    const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+    const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+    // --- Routing : lire le slug depuis l'URL ---
+    async function init() {
+      const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+
+      if (!path) {
+        // Page racine : afficher le message
+        document.getElementById('landing-screen').style.display = 'block';
+        document.getElementById('subtitle').textContent = 'Portail de tickets client';
+        return;
+      }
+
+      // Résoudre le slug via l'API
+      try {
+        const res = await fetch('/get-project-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug: path })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          document.getElementById('landing-screen').style.display = 'block';
+          document.getElementById('subtitle').textContent = 'Portail de tickets client';
+          const landingEl = document.querySelector('.landing');
+          landingEl.innerHTML = `
+            <h2>Projet introuvable</h2>
+            <p>Le projet <code>${escapeHtml(path)}</code> n'existe pas.</p>
+            <p>Vérifiez l'URL et réessayez.</p>
+          `;
+          return;
+        }
+
+        currentProject = data.project;
+        document.title = `${currentProject.name} — Tickets`;
+        document.getElementById('subtitle').innerHTML =
+          `Créer un ticket pour <span class="project-name">${escapeHtml(currentProject.name)}</span>`;
+        document.getElementById('auth-screen').style.display = 'block';
+
+      } catch (err) {
+        document.getElementById('landing-screen').style.display = 'block';
+        document.querySelector('.landing').innerHTML = `
+          <h2>Erreur</h2>
+          <p style="color:#ff6b6b">${escapeHtml(err.message)}</p>
+        `;
+      }
+    }
 
     // --- Image upload ---
     function handleFile(input) {
@@ -390,6 +463,9 @@
           handleFile(input);
         }
       });
+
+      // Init routing
+      init();
     });
 
     // --- Auth ---
@@ -440,6 +516,7 @@
           body: JSON.stringify({
             password: authedPassword, title, description,
             priority: parseInt(priority),
+            projectId: currentProject.projectId,
             screenshot: screenshotBase64 ? { base64: screenshotBase64, filename: screenshotFilename, contentType: screenshotContentType } : null
           })
         });
@@ -472,7 +549,7 @@
         const res = await fetch('/list-tickets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: authedPassword })
+          body: JSON.stringify({ password: authedPassword, projectId: currentProject.projectId })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || `Erreur HTTP ${res.status}`);
@@ -509,11 +586,9 @@
       prioEl.textContent = PRIORITY_LABELS[t.priority] || '?';
       prioEl.className = 'detail-priority-badge priority-' + t.priority;
 
-      // Parse description : extraire image, checkboxes et texte
       const desc = t.description || '';
       const parsed = parseDescription(desc);
 
-      // Image
       const imgContainer = document.getElementById('detail-image-container');
       const imgEl = document.getElementById('detail-image');
       if (parsed.imageUrl) {
@@ -524,7 +599,6 @@
         imgEl.src = '';
       }
 
-      // Content : checkboxes + texte
       const contentEl = document.getElementById('detail-content');
       let html = '';
 
@@ -545,7 +619,6 @@
       }
 
       contentEl.innerHTML = html;
-
       document.getElementById('detail-overlay').classList.add('visible');
     }
 
@@ -556,52 +629,31 @@
 
       const lines = desc.split('\n');
       for (const line of lines) {
-        // Image markdown
         const imgMatch = line.match(/^!\[.*?\]\((.*?)\)$/);
-        if (imgMatch) {
-          imageUrl = imgMatch[1];
-          continue;
-        }
+        if (imgMatch) { imageUrl = imgMatch[1]; continue; }
 
-        // Checkbox checked
         const cbChecked = line.match(/^- \[x\] (.+)$/i);
-        if (cbChecked) {
-          checkboxes.push({ checked: true, text: cbChecked[1] });
-          continue;
-        }
+        if (cbChecked) { checkboxes.push({ checked: true, text: cbChecked[1] }); continue; }
 
-        // Checkbox unchecked
         const cbUnchecked = line.match(/^- \[ \] (.+)$/);
-        if (cbUnchecked) {
-          checkboxes.push({ checked: false, text: cbUnchecked[1] });
-          continue;
-        }
+        if (cbUnchecked) { checkboxes.push({ checked: false, text: cbUnchecked[1] }); continue; }
 
-        // Skip empty lines between image and content
         if (!imageUrl && line.trim() === '') continue;
-        if (line.trim() !== '') {
-          textLines.push(line);
-        }
+        if (line.trim() !== '') textLines.push(line);
       }
 
-      return {
-        imageUrl,
-        checkboxes,
-        text: textLines.join('\n').trim()
-      };
+      return { imageUrl, checkboxes, text: textLines.join('\n').trim() };
     }
 
     function closeDetail(event) {
-      if (event.target === document.getElementById('detail-overlay')) {
+      if (event.target === document.getElementById('detail-overlay'))
         document.getElementById('detail-overlay').classList.remove('visible');
-      }
     }
 
     function closeDetailDirect() {
       document.getElementById('detail-overlay').classList.remove('visible');
     }
 
-    // --- Utils ---
     function escapeHtml(str) {
       const d = document.createElement('div');
       d.textContent = str;

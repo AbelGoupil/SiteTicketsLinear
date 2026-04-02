@@ -20,7 +20,7 @@ export async function onRequestPost(context) {
     }
 
     const body = await context.request.json();
-    const { password, title, description, priority, screenshot } = body;
+    const { password, title, description, priority, screenshot, projectId } = body;
 
     // --- Auth check ---
     if (!password || password !== env.APP_PASSWORD) {
@@ -180,10 +180,17 @@ export async function onRequestPost(context) {
       imageMarkdown = `![screenshot](${assetUrl})\n\n`;
     }
 
+    // --- Validation projectId ---
+    if (!projectId || typeof projectId !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Project ID manquant.' }),
+        { status: 400, headers }
+      );
+    }
+
     // --- Créer le ticket via l'API Linear ---
-    // IDs depuis env vars avec fallback sur les valeurs par défaut
     const TEAM_ID = env.LINEAR_TEAM_ID || '026fd940-3b73-4990-b491-3ba49e5825dd';
-    const PROJECT_ID = env.LINEAR_PROJECT_ID || 'bbdb4db3-1222-4e59-a521-e41ee3433b9c';
+    const PROJECT_ID = projectId;
     const TRIAGE_STATE_ID = env.LINEAR_TRIAGE_STATE_ID || '1a47d0a9-c3e9-4dd1-a9d7-e9ac63b099d8';
     const LABEL_VISU_CLIENT = env.LINEAR_LABEL_VISU || '0bcea0c2-e93b-47b4-aae2-b5ba4fd0f25a';
     const LABEL_RETOUR_CLIENT = env.LINEAR_LABEL_RETOUR || '51babe56-93dc-4dbf-83f9-4cc4a836b503';
