@@ -24,11 +24,7 @@
       padding: 0 24px;
     }
 
-    .logo {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
+    .logo { text-align: center; margin-bottom: 32px; }
     .logo h1 { font-size: 24px; font-weight: 700; color: #fff; }
     .logo span { color: #6c63ff; }
     .logo p { color: #888; font-size: 14px; margin-top: 4px; }
@@ -43,94 +39,63 @@
     #ticket-screen { display: none; }
 
     label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: #aaa;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      display: block; font-size: 13px; font-weight: 600;
+      color: #aaa; margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 0.5px;
     }
 
     input[type="password"],
     input[type="text"],
     textarea,
     select {
-      width: 100%;
-      padding: 10px 14px;
-      background: #111;
-      border: 1px solid #333;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 15px;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
+      width: 100%; padding: 10px 14px;
+      background: #111; border: 1px solid #333;
+      border-radius: 8px; color: #fff;
+      font-size: 15px; font-family: inherit;
+      outline: none; transition: border-color 0.2s;
     }
 
     input:focus, textarea:focus, select:focus { border-color: #6c63ff; }
-
     textarea { min-height: 120px; resize: vertical; }
 
     select {
-      cursor: pointer;
-      appearance: none;
+      cursor: pointer; appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
+      background-repeat: no-repeat; background-position: right 12px center;
     }
 
     .field { margin-bottom: 20px; }
 
     button {
-      width: 100%;
-      padding: 12px;
-      background: #6c63ff;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
+      width: 100%; padding: 12px;
+      background: #6c63ff; color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
     }
-
     button:hover { background: #5a52d5; }
     button:disabled { background: #333; color: #666; cursor: not-allowed; }
 
     .error {
-      background: #2d1515;
-      border: 1px solid #5c2020;
-      color: #ff6b6b;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      margin-bottom: 16px;
-      display: none;
-      word-break: break-word;
+      background: #2d1515; border: 1px solid #5c2020;
+      color: #ff6b6b; padding: 12px; border-radius: 8px;
+      font-size: 13px; margin-bottom: 16px;
+      display: none; word-break: break-word;
     }
 
     /* Drop zone */
     #drop-zone {
-      border: 2px dashed #333;
-      border-radius: 8px;
-      padding: 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s;
-      position: relative;
+      border: 2px dashed #333; border-radius: 8px;
+      padding: 20px; text-align: center;
+      cursor: pointer; transition: border-color 0.2s; position: relative;
     }
     #drop-zone:hover, #drop-zone.dragover { border-color: #6c63ff; }
     #drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
     #drop-zone p { color: #666; font-size: 14px; pointer-events: none; }
 
     #preview-container {
-      display: none;
-      position: relative;
-      margin-top: 10px;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid #333;
+      display: none; position: relative; margin-top: 10px;
+      border-radius: 8px; overflow: hidden; border: 1px solid #333;
     }
     #preview-img { width: 100%; max-height: 200px; object-fit: contain; background: #111; display: block; }
     #remove-img {
@@ -142,13 +107,13 @@
     }
     #remove-img:hover { background: rgba(0,0,0,0.9); }
 
-    /* Success overlay */
-    .success-overlay {
+    /* Overlays */
+    .overlay {
       display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,0.7); z-index: 100;
       align-items: center; justify-content: center;
     }
-    .success-overlay.visible { display: flex; }
+    .overlay.visible { display: flex; }
 
     .success-box {
       background: #1a2e1a; border: 1px solid #2d5a2d;
@@ -162,130 +127,129 @@
     .success-box button:hover { background: #3a7a3a; }
 
     /* Tickets section */
-    #tickets-section {
-      display: none;
-      margin-top: 40px;
-    }
+    #tickets-section { display: none; margin-top: 40px; }
 
     .section-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 16px;
-      padding-bottom: 8px;
+      font-size: 18px; font-weight: 700; color: #fff;
+      margin-bottom: 16px; padding-bottom: 8px;
       border-bottom: 1px solid #2a2a2a;
     }
 
-    .tickets-loading {
-      color: #666;
-      font-size: 14px;
-      text-align: center;
-      padding: 20px;
-    }
+    .tickets-loading { color: #666; font-size: 14px; text-align: center; padding: 20px; }
 
     .ticket-card {
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 12px;
-      transition: border-color 0.2s;
-      cursor: pointer;
-      text-decoration: none;
-      display: block;
-      color: inherit;
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 10px; padding: 14px 16px;
+      margin-bottom: 10px; transition: border-color 0.2s;
+      cursor: pointer; display: flex; align-items: center; gap: 12px;
     }
-
-    .ticket-card:hover {
-      border-color: #6c63ff;
-    }
-
-    .ticket-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
+    .ticket-card:hover { border-color: #6c63ff; }
 
     .ticket-id {
-      font-size: 12px;
-      color: #666;
-      font-weight: 600;
-      font-family: monospace;
+      font-size: 12px; color: #555; font-weight: 600;
+      font-family: monospace; flex-shrink: 0;
+    }
+
+    .ticket-title-card {
+      font-size: 14px; font-weight: 500; color: #e0e0e0;
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
 
     .ticket-priority {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 4px;
-      text-transform: uppercase;
+      font-size: 11px; font-weight: 600; padding: 2px 8px;
+      border-radius: 4px; text-transform: uppercase; flex-shrink: 0;
     }
-
     .priority-0 { background: #5c1515; color: #ff6b6b; }
     .priority-1 { background: #5c3a15; color: #f2994a; }
     .priority-2 { background: #3a3a15; color: #f2c94c; }
     .priority-3 { background: #1a2e1a; color: #6fcf97; }
 
-    .ticket-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: #e0e0e0;
-      margin-bottom: 6px;
-    }
-
-    .ticket-desc {
-      font-size: 13px;
-      color: #888;
-      line-height: 1.4;
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-    }
-
-    .ticket-footer {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 10px;
-      flex-wrap: wrap;
-    }
-
-    .ticket-state {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 4px;
-    }
-
-    .ticket-label {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 4px;
-    }
-
-    .ticket-date {
-      font-size: 11px;
-      color: #555;
-      margin-left: auto;
-    }
-
     .no-tickets {
-      color: #555;
-      font-size: 14px;
-      text-align: center;
-      padding: 24px;
-      background: #1a1a1a;
+      color: #555; font-size: 14px; text-align: center;
+      padding: 24px; background: #1a1a1a;
+      border: 1px solid #2a2a2a; border-radius: 10px;
+    }
+
+    /* Ticket detail popup */
+    .detail-box {
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 12px; padding: 0;
+      max-width: 560px; width: 90vw;
+      max-height: 85vh; overflow-y: auto;
+      position: relative;
+    }
+
+    .detail-close {
+      position: absolute; top: 12px; right: 12px;
+      width: 32px; height: 32px; padding: 0;
+      background: rgba(255,255,255,0.05); color: #888;
+      border: none; border-radius: 8px; font-size: 18px;
+      cursor: pointer; display: flex; align-items: center;
+      justify-content: center; z-index: 10;
+    }
+    .detail-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+    .detail-header {
+      padding: 24px 24px 0;
+    }
+
+    .detail-id {
+      font-size: 12px; color: #555; font-family: monospace;
+      font-weight: 600; margin-bottom: 8px;
+    }
+
+    .detail-title {
+      font-size: 20px; font-weight: 700; color: #fff;
+      margin-bottom: 4px; padding-right: 40px;
+    }
+
+    .detail-priority-badge {
+      display: inline-block; font-size: 11px; font-weight: 600;
+      padding: 3px 10px; border-radius: 4px;
+      text-transform: uppercase; margin-top: 8px;
+    }
+
+    .detail-image {
+      margin: 20px 24px 0; border-radius: 8px; overflow: hidden;
       border: 1px solid #2a2a2a;
-      border-radius: 10px;
+    }
+    .detail-image img {
+      width: 100%; display: block;
+      background: #111;
+    }
+
+    .detail-body {
+      padding: 20px 24px 24px;
+    }
+
+    .detail-description {
+      font-size: 15px; color: #ccc; line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .detail-checkbox-list {
+      list-style: none; padding: 0; margin: 0;
+    }
+
+    .detail-checkbox-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 8px 0; font-size: 15px; color: #ccc; line-height: 1.5;
+    }
+
+    .detail-checkbox-item input[type="checkbox"] {
+      margin-top: 4px; width: 18px; height: 18px;
+      accent-color: #6c63ff; flex-shrink: 0;
+      cursor: default; pointer-events: none;
+    }
+
+    .detail-checkbox-item.checked span {
+      text-decoration: line-through; color: #666;
     }
   </style>
 </head>
 <body>
 
-  <div class="container" id="auth-container">
+  <div class="container">
     <div class="logo">
       <h1><span>Riviera Flow</span> — Tickets</h1>
       <p>Créer un ticket pour l'équipe dev</p>
@@ -338,7 +302,6 @@
       <button id="submit-btn" onclick="createTicket()">Créer le ticket</button>
     </div>
 
-    <!-- Tickets Visu Client -->
     <div id="tickets-section">
       <div class="section-title">Tickets en cours</div>
       <div id="tickets-list">
@@ -348,7 +311,7 @@
   </div>
 
   <!-- Success popup -->
-  <div class="success-overlay" id="success-overlay">
+  <div class="overlay" id="success-overlay">
     <div class="success-box">
       <div class="check">&#10003;</div>
       <h2>Ticket créé !</h2>
@@ -357,14 +320,34 @@
     </div>
   </div>
 
+  <!-- Ticket detail popup -->
+  <div class="overlay" id="detail-overlay" onclick="closeDetail(event)">
+    <div class="detail-box" id="detail-box">
+      <button class="detail-close" onclick="closeDetailDirect()">&#10005;</button>
+      <div class="detail-header">
+        <div class="detail-id" id="detail-id"></div>
+        <div class="detail-title" id="detail-title"></div>
+        <div class="detail-priority-badge" id="detail-priority"></div>
+      </div>
+      <div class="detail-image" id="detail-image-container" style="display:none">
+        <img id="detail-image" src="" alt="Capture d'écran">
+      </div>
+      <div class="detail-body">
+        <div id="detail-content"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
     let authedPassword = null;
     let screenshotBase64 = null;
     let screenshotFilename = null;
     let screenshotContentType = null;
+    let ticketsData = [];
 
     const PRIORITY_LABELS = { 0: 'Urgent', 1: 'High', 2: 'Medium', 3: 'Low', 4: 'None' };
 
+    // --- Image upload ---
     function handleFile(input) {
       const file = input.files[0];
       if (!file) return;
@@ -382,22 +365,18 @@
     }
 
     function removeImage() {
-      screenshotBase64 = null;
-      screenshotFilename = null;
-      screenshotContentType = null;
+      screenshotBase64 = null; screenshotFilename = null; screenshotContentType = null;
       document.getElementById('screenshot').value = '';
       document.getElementById('preview-container').style.display = 'none';
       document.getElementById('drop-zone').style.display = 'block';
     }
 
-    // Drag & drop
     document.addEventListener('DOMContentLoaded', () => {
       const dz = document.getElementById('drop-zone');
       dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
       dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
       dz.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dz.classList.remove('dragover');
+        e.preventDefault(); dz.classList.remove('dragover');
         const file = e.dataTransfer.files[0];
         if (file) {
           const input = document.getElementById('screenshot');
@@ -409,7 +388,7 @@
       });
     });
 
-    // Enter key support
+    // --- Auth ---
     document.getElementById('password').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') authenticate();
     });
@@ -417,24 +396,17 @@
     function authenticate() {
       const pwd = document.getElementById('password').value.trim();
       const errEl = document.getElementById('auth-error');
-
-      if (!pwd) {
-        errEl.textContent = 'Veuillez entrer le mot de passe.';
-        errEl.style.display = 'block';
-        return;
-      }
-
+      if (!pwd) { errEl.textContent = 'Veuillez entrer le mot de passe.'; errEl.style.display = 'block'; return; }
       authedPassword = pwd;
       errEl.style.display = 'none';
       document.getElementById('auth-screen').style.display = 'none';
       document.getElementById('ticket-screen').style.display = 'block';
       document.getElementById('tickets-section').style.display = 'block';
       document.getElementById('title').focus();
-
-      // Charger les tickets
       loadTickets();
     }
 
+    // --- Create ticket ---
     async function createTicket() {
       const title = document.getElementById('title').value.trim();
       const description = document.getElementById('description').value.trim();
@@ -444,43 +416,28 @@
 
       if (!title || !description) {
         errEl.textContent = 'Titre et description sont obligatoires.';
-        errEl.style.display = 'block';
-        return;
+        errEl.style.display = 'block'; return;
       }
 
-      errEl.style.display = 'none';
-      btn.disabled = true;
-      btn.textContent = 'Création en cours...';
+      errEl.style.display = 'none'; btn.disabled = true; btn.textContent = 'Création en cours...';
 
       try {
         const res = await fetch('/create-ticket', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            password: authedPassword,
-            title,
-            description,
+            password: authedPassword, title, description,
             priority: parseInt(priority),
-            screenshot: screenshotBase64 ? {
-              base64: screenshotBase64,
-              filename: screenshotFilename,
-              contentType: screenshotContentType
-            } : null
+            screenshot: screenshotBase64 ? { base64: screenshotBase64, filename: screenshotFilename, contentType: screenshotContentType } : null
           })
         });
-
         const data = await res.json();
-
         if (!res.ok) throw new Error(data.error || `Erreur HTTP ${res.status}`);
-
         document.getElementById('success-overlay').classList.add('visible');
-
       } catch (err) {
-        errEl.textContent = `Erreur : ${err.message}`;
-        errEl.style.display = 'block';
+        errEl.textContent = `Erreur : ${err.message}`; errEl.style.display = 'block';
       } finally {
-        btn.disabled = false;
-        btn.textContent = 'Créer le ticket';
+        btn.disabled = false; btn.textContent = 'Créer le ticket';
       }
     }
 
@@ -491,11 +448,10 @@
       document.getElementById('priority').value = '2';
       removeImage();
       document.getElementById('title').focus();
-      // Recharger les tickets
       loadTickets();
     }
 
-    // --- Tickets list ---
+    // --- Load tickets ---
     async function loadTickets() {
       const listEl = document.getElementById('tickets-list');
       listEl.innerHTML = '<div class="tickets-loading">Chargement des tickets...</div>';
@@ -506,70 +462,138 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: authedPassword })
         });
-
         const data = await res.json();
-
         if (!res.ok) throw new Error(data.error || `Erreur HTTP ${res.status}`);
 
-        const tickets = data.tickets || [];
+        ticketsData = data.tickets || [];
 
-        if (tickets.length === 0) {
+        if (ticketsData.length === 0) {
           listEl.innerHTML = '<div class="no-tickets">Aucun ticket à afficher.</div>';
           return;
         }
 
-        listEl.innerHTML = tickets.map(t => {
-          const desc = cleanDescription(t.description || '');
-          const date = new Date(t.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-          const labels = (t.labels?.nodes || []).map(l =>
-            `<span class="ticket-label" style="background:${hexToRgba(l.color, 0.2)};color:${l.color}">${l.name}</span>`
-          ).join('');
-          const stateColor = t.state?.color || '#666';
-
-          return `
-            <a class="ticket-card" href="${t.url}" target="_blank" rel="noopener">
-              <div class="ticket-header">
-                <span class="ticket-id">${t.identifier}</span>
-                <span class="ticket-priority priority-${t.priority}">${PRIORITY_LABELS[t.priority] || '?'}</span>
-              </div>
-              <div class="ticket-title">${escapeHtml(t.title)}</div>
-              ${desc ? `<div class="ticket-desc">${escapeHtml(desc)}</div>` : ''}
-              <div class="ticket-footer">
-                <span class="ticket-state" style="background:${hexToRgba(stateColor, 0.2)};color:${stateColor}">${t.state?.name || '?'}</span>
-                ${labels}
-                <span class="ticket-date">${date}</span>
-              </div>
-            </a>
-          `;
-        }).join('');
+        listEl.innerHTML = ticketsData.map((t, i) => `
+          <div class="ticket-card" onclick="openDetail(${i})">
+            <span class="ticket-id">${escapeHtml(t.identifier)}</span>
+            <span class="ticket-title-card">${escapeHtml(t.title)}</span>
+            <span class="ticket-priority priority-${t.priority}">${PRIORITY_LABELS[t.priority] || '?'}</span>
+          </div>
+        `).join('');
 
       } catch (err) {
         listEl.innerHTML = `<div class="no-tickets" style="color:#ff6b6b">Erreur : ${escapeHtml(err.message)}</div>`;
       }
     }
 
-    // Nettoyer la description (retirer markdown image et checkbox)
-    function cleanDescription(desc) {
-      return desc
-        .replace(/!\[.*?\]\(.*?\)\n*/g, '')
-        .replace(/^- \[ \] /gm, '')
-        .trim();
+    // --- Detail popup ---
+    function openDetail(index) {
+      const t = ticketsData[index];
+      if (!t) return;
+
+      document.getElementById('detail-id').textContent = t.identifier;
+      document.getElementById('detail-title').textContent = t.title;
+
+      const prioEl = document.getElementById('detail-priority');
+      prioEl.textContent = PRIORITY_LABELS[t.priority] || '?';
+      prioEl.className = 'detail-priority-badge priority-' + t.priority;
+
+      // Parse description : extraire image, checkboxes et texte
+      const desc = t.description || '';
+      const parsed = parseDescription(desc);
+
+      // Image
+      const imgContainer = document.getElementById('detail-image-container');
+      const imgEl = document.getElementById('detail-image');
+      if (parsed.imageUrl) {
+        imgEl.src = parsed.imageUrl;
+        imgContainer.style.display = 'block';
+      } else {
+        imgContainer.style.display = 'none';
+        imgEl.src = '';
+      }
+
+      // Content : checkboxes + texte
+      const contentEl = document.getElementById('detail-content');
+      let html = '';
+
+      if (parsed.checkboxes.length > 0) {
+        html += '<ul class="detail-checkbox-list">';
+        parsed.checkboxes.forEach(cb => {
+          const checkedClass = cb.checked ? ' checked' : '';
+          html += `<li class="detail-checkbox-item${checkedClass}">
+            <input type="checkbox" ${cb.checked ? 'checked' : ''} tabindex="-1">
+            <span>${escapeHtml(cb.text)}</span>
+          </li>`;
+        });
+        html += '</ul>';
+      }
+
+      if (parsed.text) {
+        html += `<div class="detail-description">${escapeHtml(parsed.text)}</div>`;
+      }
+
+      contentEl.innerHTML = html;
+
+      document.getElementById('detail-overlay').classList.add('visible');
     }
 
+    function parseDescription(desc) {
+      let imageUrl = null;
+      let checkboxes = [];
+      let textLines = [];
+
+      const lines = desc.split('\n');
+      for (const line of lines) {
+        // Image markdown
+        const imgMatch = line.match(/^!\[.*?\]\((.*?)\)$/);
+        if (imgMatch) {
+          imageUrl = imgMatch[1];
+          continue;
+        }
+
+        // Checkbox checked
+        const cbChecked = line.match(/^- \[x\] (.+)$/i);
+        if (cbChecked) {
+          checkboxes.push({ checked: true, text: cbChecked[1] });
+          continue;
+        }
+
+        // Checkbox unchecked
+        const cbUnchecked = line.match(/^- \[ \] (.+)$/);
+        if (cbUnchecked) {
+          checkboxes.push({ checked: false, text: cbUnchecked[1] });
+          continue;
+        }
+
+        // Skip empty lines between image and content
+        if (!imageUrl && line.trim() === '') continue;
+        if (line.trim() !== '') {
+          textLines.push(line);
+        }
+      }
+
+      return {
+        imageUrl,
+        checkboxes,
+        text: textLines.join('\n').trim()
+      };
+    }
+
+    function closeDetail(event) {
+      if (event.target === document.getElementById('detail-overlay')) {
+        document.getElementById('detail-overlay').classList.remove('visible');
+      }
+    }
+
+    function closeDetailDirect() {
+      document.getElementById('detail-overlay').classList.remove('visible');
+    }
+
+    // --- Utils ---
     function escapeHtml(str) {
       const d = document.createElement('div');
       d.textContent = str;
       return d.innerHTML;
-    }
-
-    function hexToRgba(hex, alpha) {
-      if (!hex) return `rgba(100,100,100,${alpha})`;
-      hex = hex.replace('#', '');
-      if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-      const r = parseInt(hex.substring(0, 2), 16);
-      const g = parseInt(hex.substring(2, 4), 16);
-      const b = parseInt(hex.substring(4, 6), 16);
-      return `rgba(${r},${g},${b},${alpha})`;
     }
   </script>
 </body>
