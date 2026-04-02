@@ -13,14 +13,15 @@
       color: #e0e0e0;
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
+      padding: 40px 0;
     }
 
     .container {
       width: 100%;
       max-width: 520px;
-      padding: 24px;
+      padding: 0 24px;
     }
 
     .logo {
@@ -28,23 +29,10 @@
       margin-bottom: 32px;
     }
 
-    .logo h1 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #fff;
-    }
+    .logo h1 { font-size: 24px; font-weight: 700; color: #fff; }
+    .logo span { color: #6c63ff; }
+    .logo p { color: #888; font-size: 14px; margin-top: 4px; }
 
-    .logo span {
-      color: #6c63ff;
-    }
-
-    .logo p {
-      color: #888;
-      font-size: 14px;
-      margin-top: 4px;
-    }
-
-    /* Auth screen */
     #auth-screen, #ticket-screen {
       background: #1a1a1a;
       border: 1px solid #2a2a2a;
@@ -80,14 +68,9 @@
       transition: border-color 0.2s;
     }
 
-    input:focus, textarea:focus, select:focus {
-      border-color: #6c63ff;
-    }
+    input:focus, textarea:focus, select:focus { border-color: #6c63ff; }
 
-    textarea {
-      min-height: 120px;
-      resize: vertical;
-    }
+    textarea { min-height: 120px; resize: vertical; }
 
     select {
       cursor: pointer;
@@ -98,13 +81,6 @@
     }
 
     .field { margin-bottom: 20px; }
-
-    .row {
-      display: flex;
-      gap: 16px;
-    }
-
-    .row .field { flex: 1; }
 
     button {
       width: 100%;
@@ -120,11 +96,7 @@
     }
 
     button:hover { background: #5a52d5; }
-    button:disabled {
-      background: #333;
-      color: #666;
-      cursor: not-allowed;
-    }
+    button:disabled { background: #333; color: #666; cursor: not-allowed; }
 
     .error {
       background: #2d1515;
@@ -138,6 +110,7 @@
       word-break: break-word;
     }
 
+    /* Drop zone */
     #drop-zone {
       border: 2px dashed #333;
       border-radius: 8px;
@@ -147,23 +120,9 @@
       transition: border-color 0.2s;
       position: relative;
     }
-
-    #drop-zone:hover, #drop-zone.dragover {
-      border-color: #6c63ff;
-    }
-
-    #drop-zone input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-    }
-
-    #drop-zone p {
-      color: #666;
-      font-size: 14px;
-      pointer-events: none;
-    }
+    #drop-zone:hover, #drop-zone.dragover { border-color: #6c63ff; }
+    #drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    #drop-zone p { color: #666; font-size: 14px; pointer-events: none; }
 
     #preview-container {
       display: none;
@@ -173,89 +132,159 @@
       overflow: hidden;
       border: 1px solid #333;
     }
-
-    #preview-img {
-      width: 100%;
-      max-height: 200px;
-      object-fit: contain;
-      background: #111;
-      display: block;
-    }
-
+    #preview-img { width: 100%; max-height: 200px; object-fit: contain; background: #111; display: block; }
     #remove-img {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 28px;
-      height: 28px;
-      padding: 0;
-      background: rgba(0,0,0,0.7);
-      color: #ff6b6b;
-      border: none;
-      border-radius: 50%;
-      font-size: 14px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      position: absolute; top: 8px; right: 8px;
+      width: 28px; height: 28px; padding: 0;
+      background: rgba(0,0,0,0.7); color: #ff6b6b;
+      border: none; border-radius: 50%; font-size: 14px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
     }
+    #remove-img:hover { background: rgba(0,0,0,0.9); }
 
-    #remove-img:hover {
-      background: rgba(0,0,0,0.9);
-    }
-
+    /* Success overlay */
     .success-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 100;
+      align-items: center; justify-content: center;
     }
-
-    .success-overlay.visible {
-      display: flex;
-    }
+    .success-overlay.visible { display: flex; }
 
     .success-box {
-      background: #1a2e1a;
-      border: 1px solid #2d5a2d;
-      border-radius: 12px;
-      padding: 32px;
-      text-align: center;
-      max-width: 360px;
+      background: #1a2e1a; border: 1px solid #2d5a2d;
+      border-radius: 12px; padding: 32px;
+      text-align: center; max-width: 360px;
+    }
+    .success-box .check { font-size: 48px; margin-bottom: 12px; }
+    .success-box h2 { color: #4ade80; font-size: 18px; margin-bottom: 8px; }
+    .success-box p { color: #888; font-size: 14px; margin-bottom: 20px; }
+    .success-box button { background: #2d5a2d; }
+    .success-box button:hover { background: #3a7a3a; }
+
+    /* Tickets section */
+    #tickets-section {
+      display: none;
+      margin-top: 40px;
     }
 
-    .success-box .check {
-      font-size: 48px;
-      margin-bottom: 12px;
-    }
-
-    .success-box h2 {
-      color: #4ade80;
+    .section-title {
       font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    .tickets-loading {
+      color: #666;
+      font-size: 14px;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .ticket-card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+      color: inherit;
+    }
+
+    .ticket-card:hover {
+      border-color: #6c63ff;
+    }
+
+    .ticket-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       margin-bottom: 8px;
     }
 
-    .success-box p {
+    .ticket-id {
+      font-size: 12px;
+      color: #666;
+      font-weight: 600;
+      font-family: monospace;
+    }
+
+    .ticket-priority {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .priority-0 { background: #5c1515; color: #ff6b6b; }
+    .priority-1 { background: #5c3a15; color: #f2994a; }
+    .priority-2 { background: #3a3a15; color: #f2c94c; }
+    .priority-3 { background: #1a2e1a; color: #6fcf97; }
+
+    .ticket-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e0e0e0;
+      margin-bottom: 6px;
+    }
+
+    .ticket-desc {
+      font-size: 13px;
       color: #888;
+      line-height: 1.4;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .ticket-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ticket-state {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .ticket-label {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .ticket-date {
+      font-size: 11px;
+      color: #555;
+      margin-left: auto;
+    }
+
+    .no-tickets {
+      color: #555;
       font-size: 14px;
-      margin-bottom: 20px;
-    }
-
-    .success-box button {
-      background: #2d5a2d;
-    }
-
-    .success-box button:hover {
-      background: #3a7a3a;
+      text-align: center;
+      padding: 24px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
 
-  <!-- Auth -->
   <div class="container" id="auth-container">
     <div class="logo">
       <h1><span>Riviera Flow</span> — Tickets</h1>
@@ -308,6 +337,14 @@
 
       <button id="submit-btn" onclick="createTicket()">Créer le ticket</button>
     </div>
+
+    <!-- Tickets Visu Client -->
+    <div id="tickets-section">
+      <div class="section-title">Tickets en cours</div>
+      <div id="tickets-list">
+        <div class="tickets-loading">Chargement des tickets...</div>
+      </div>
+    </div>
   </div>
 
   <!-- Success popup -->
@@ -326,18 +363,17 @@
     let screenshotFilename = null;
     let screenshotContentType = null;
 
+    const PRIORITY_LABELS = { 0: 'Urgent', 1: 'High', 2: 'Medium', 3: 'Low', 4: 'None' };
+
     function handleFile(input) {
       const file = input.files[0];
       if (!file) return;
-      if (!file.type.startsWith('image/')) {
-        alert('Seules les images sont acceptées.');
-        return;
-      }
+      if (!file.type.startsWith('image/')) { alert('Seules les images sont acceptées.'); return; }
       screenshotFilename = file.name;
       screenshotContentType = file.type;
       const reader = new FileReader();
       reader.onload = (e) => {
-        screenshotBase64 = e.target.result.split(',')[1]; // remove data:...;base64, prefix
+        screenshotBase64 = e.target.result.split(',')[1];
         document.getElementById('preview-img').src = e.target.result;
         document.getElementById('preview-container').style.display = 'block';
         document.getElementById('drop-zone').style.display = 'none';
@@ -355,7 +391,7 @@
     }
 
     // Drag & drop
-    const dropZone = document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
       const dz = document.getElementById('drop-zone');
       dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
       dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
@@ -388,12 +424,15 @@
         return;
       }
 
-      // Store password, show ticket form
       authedPassword = pwd;
       errEl.style.display = 'none';
       document.getElementById('auth-screen').style.display = 'none';
       document.getElementById('ticket-screen').style.display = 'block';
+      document.getElementById('tickets-section').style.display = 'block';
       document.getElementById('title').focus();
+
+      // Charger les tickets
+      loadTickets();
     }
 
     async function createTicket() {
@@ -403,7 +442,6 @@
       const errEl = document.getElementById('ticket-error');
       const btn = document.getElementById('submit-btn');
 
-      // Validation
       if (!title || !description) {
         errEl.textContent = 'Titre et description sont obligatoires.';
         errEl.style.display = 'block';
@@ -433,11 +471,8 @@
 
         const data = await res.json();
 
-        if (!res.ok) {
-          throw new Error(data.error || `Erreur HTTP ${res.status}`);
-        }
+        if (!res.ok) throw new Error(data.error || `Erreur HTTP ${res.status}`);
 
-        // Success
         document.getElementById('success-overlay').classList.add('visible');
 
       } catch (err) {
@@ -451,12 +486,90 @@
 
     function closeSuccess() {
       document.getElementById('success-overlay').classList.remove('visible');
-      // Reset form
       document.getElementById('title').value = '';
       document.getElementById('description').value = '';
       document.getElementById('priority').value = '2';
       removeImage();
       document.getElementById('title').focus();
+      // Recharger les tickets
+      loadTickets();
+    }
+
+    // --- Tickets list ---
+    async function loadTickets() {
+      const listEl = document.getElementById('tickets-list');
+      listEl.innerHTML = '<div class="tickets-loading">Chargement des tickets...</div>';
+
+      try {
+        const res = await fetch('/list-tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: authedPassword })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || `Erreur HTTP ${res.status}`);
+
+        const tickets = data.tickets || [];
+
+        if (tickets.length === 0) {
+          listEl.innerHTML = '<div class="no-tickets">Aucun ticket à afficher.</div>';
+          return;
+        }
+
+        listEl.innerHTML = tickets.map(t => {
+          const desc = cleanDescription(t.description || '');
+          const date = new Date(t.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+          const labels = (t.labels?.nodes || []).map(l =>
+            `<span class="ticket-label" style="background:${hexToRgba(l.color, 0.2)};color:${l.color}">${l.name}</span>`
+          ).join('');
+          const stateColor = t.state?.color || '#666';
+
+          return `
+            <a class="ticket-card" href="${t.url}" target="_blank" rel="noopener">
+              <div class="ticket-header">
+                <span class="ticket-id">${t.identifier}</span>
+                <span class="ticket-priority priority-${t.priority}">${PRIORITY_LABELS[t.priority] || '?'}</span>
+              </div>
+              <div class="ticket-title">${escapeHtml(t.title)}</div>
+              ${desc ? `<div class="ticket-desc">${escapeHtml(desc)}</div>` : ''}
+              <div class="ticket-footer">
+                <span class="ticket-state" style="background:${hexToRgba(stateColor, 0.2)};color:${stateColor}">${t.state?.name || '?'}</span>
+                ${labels}
+                <span class="ticket-date">${date}</span>
+              </div>
+            </a>
+          `;
+        }).join('');
+
+      } catch (err) {
+        listEl.innerHTML = `<div class="no-tickets" style="color:#ff6b6b">Erreur : ${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    // Nettoyer la description (retirer markdown image et checkbox)
+    function cleanDescription(desc) {
+      return desc
+        .replace(/!\[.*?\]\(.*?\)\n*/g, '')
+        .replace(/^- \[ \] /gm, '')
+        .trim();
+    }
+
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    function hexToRgba(hex, alpha) {
+      if (!hex) return `rgba(100,100,100,${alpha})`;
+      hex = hex.replace('#', '');
+      if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return `rgba(${r},${g},${b},${alpha})`;
     }
   </script>
 </body>
