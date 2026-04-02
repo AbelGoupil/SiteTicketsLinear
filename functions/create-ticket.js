@@ -1,7 +1,6 @@
 export async function onRequestPost(context) {
   const { env } = context;
 
-  // Headers CORS (même domaine, mais au cas où)
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
@@ -9,7 +8,7 @@ export async function onRequestPost(context) {
 
   try {
     const body = await context.request.json();
-    const { password, title, description, priority } = body;
+    const { password, title, description, priority, screenshot } = body;
 
     // --- Auth check ---
     if (password !== env.APP_PASSWORD) {
@@ -41,6 +40,90 @@ export async function onRequestPost(context) {
       );
     }
 
+    const linearHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': env.LINEAR_API_KEY,
+    };
+
+    // --- Upload screenshot si présent ---
+    let imageMarkdown = '';
+
+    if (screenshot && screenshot.base64) {
+      // Étape 1 : demander une URL d'upload à Linear
+      const uploadMutation = `
+        mutation FileUpload($size: Int!, $contentType: String!, $filename: String!) {
+          fileUpload(size: $size, contentType: $contentType, filename: $filename) {
+            success
+            uploadFile {
+              uploadUrl
+              assetUrl
+              headers {
+                key
+                value
+              }
+            }
+          }
+        }
+      `;
+
+      // Décoder le base64 pour connaître la taille
+      const binaryData = Uint8Array.from(atob(screenshot.base64), c => c.charCodeAt(0));
+
+      const uploadRes = await fetch('https://api.linear.app/graphql', {
+        method: 'POST',
+        headers: linearHeaders,
+        body: JSON.stringify({
+          query: uploadMutation,
+          variables: {
+            size: binaryData.length,
+            contentType: screenshot.contentType,
+            filename: screenshot.filename,
+          },
+        }),
+      });
+
+      const uploadData = await uploadRes.json();
+
+      if (uploadData.errors) {
+        return new Response(
+          JSON.stringify({ error: `Erreur upload Linear : ${uploadData.errors.map(e => e.message).join(' | ')}` }),
+          { status: 502, headers }
+        );
+      }
+
+      if (!uploadData.data?.fileUpload?.success) {
+        return new Response(
+          JSON.stringify({ error: 'Linear a refusé l\'upload. Réponse : ' + JSON.stringify(uploadData.data) }),
+          { status: 502, headers }
+        );
+      }
+
+      const { uploadUrl, assetUrl, headers: uploadHeaders } = uploadData.data.fileUpload.uploadFile;
+
+      // Étape 2 : uploader le fichier vers l'URL signée
+      const putHeaders = {};
+      for (const h of uploadHeaders) {
+        putHeaders[h.key] = h.value;
+      }
+      putHeaders['Content-Type'] = screenshot.contentType;
+
+      const putRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: putHeaders,
+        body: binaryData,
+      });
+
+      if (!putRes.ok) {
+        return new Response(
+          JSON.stringify({ error: `Erreur upload fichier (HTTP ${putRes.status}): ${await putRes.text()}` }),
+          { status: 502, headers }
+        );
+      }
+
+      // Markdown image au début de la description
+      imageMarkdown = `![screenshot](${assetUrl})\n\n`;
+    }
+
     // --- Créer le ticket via l'API Linear (GraphQL) ---
     const TEAM_ID = '026fd940-3b73-4990-b491-3ba49e5825dd';
     const PROJECT_ID = 'bbdb4db3-1222-4e59-a521-e41ee3433b9c';
@@ -60,29 +143,27 @@ export async function onRequestPost(context) {
       }
     `;
 
+    const finalDescription = imageMarkdown + description.trim();
+
     const variables = {
       input: {
         teamId: TEAM_ID,
         projectId: PROJECT_ID,
         stateId: TRIAGE_STATE_ID,
         title: title.trim(),
-        description: description.trim(),
+        description: finalDescription,
         priority: priority,
       },
     };
 
     const linearRes = await fetch('https://api.linear.app/graphql', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': env.LINEAR_API_KEY,
-      },
+      headers: linearHeaders,
       body: JSON.stringify({ query: mutation, variables }),
     });
 
     const linearData = await linearRes.json();
 
-    // Gestion erreurs Linear
     if (linearData.errors) {
       const errorMessages = linearData.errors.map(e => e.message).join(' | ');
       return new Response(

@@ -138,6 +138,72 @@
       word-break: break-word;
     }
 
+    #drop-zone {
+      border: 2px dashed #333;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      position: relative;
+    }
+
+    #drop-zone:hover, #drop-zone.dragover {
+      border-color: #6c63ff;
+    }
+
+    #drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    #drop-zone p {
+      color: #666;
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    #preview-container {
+      display: none;
+      position: relative;
+      margin-top: 10px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #333;
+    }
+
+    #preview-img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: contain;
+      background: #111;
+      display: block;
+    }
+
+    #remove-img {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      background: rgba(0,0,0,0.7);
+      color: #ff6b6b;
+      border: none;
+      border-radius: 50%;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #remove-img:hover {
+      background: rgba(0,0,0,0.9);
+    }
+
     .success-overlay {
       display: none;
       position: fixed;
@@ -214,6 +280,18 @@
       </div>
 
       <div class="field">
+        <label for="screenshot">Capture d'écran (optionnel)</label>
+        <div id="drop-zone">
+          <input type="file" id="screenshot" accept="image/*" onchange="handleFile(this)">
+          <p>Cliquez ou glissez une image ici</p>
+        </div>
+        <div id="preview-container">
+          <img id="preview-img" src="" alt="Aperçu">
+          <button type="button" id="remove-img" onclick="removeImage()">✕</button>
+        </div>
+      </div>
+
+      <div class="field">
         <label for="description">Description</label>
         <textarea id="description" placeholder="Décrivez le bug ou la feature en détail..."></textarea>
       </div>
@@ -244,6 +322,56 @@
 
   <script>
     let authedPassword = null;
+    let screenshotBase64 = null;
+    let screenshotFilename = null;
+    let screenshotContentType = null;
+
+    function handleFile(input) {
+      const file = input.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        alert('Seules les images sont acceptées.');
+        return;
+      }
+      screenshotFilename = file.name;
+      screenshotContentType = file.type;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        screenshotBase64 = e.target.result.split(',')[1]; // remove data:...;base64, prefix
+        document.getElementById('preview-img').src = e.target.result;
+        document.getElementById('preview-container').style.display = 'block';
+        document.getElementById('drop-zone').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeImage() {
+      screenshotBase64 = null;
+      screenshotFilename = null;
+      screenshotContentType = null;
+      document.getElementById('screenshot').value = '';
+      document.getElementById('preview-container').style.display = 'none';
+      document.getElementById('drop-zone').style.display = 'block';
+    }
+
+    // Drag & drop
+    const dropZone = document.addEventListener('DOMContentLoaded', () => {
+      const dz = document.getElementById('drop-zone');
+      dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+      dz.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dz.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file) {
+          const input = document.getElementById('screenshot');
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          input.files = dt.files;
+          handleFile(input);
+        }
+      });
+    });
 
     // Enter key support
     document.getElementById('password').addEventListener('keydown', (e) => {
@@ -294,7 +422,12 @@
             password: authedPassword,
             title,
             description,
-            priority: parseInt(priority)
+            priority: parseInt(priority),
+            screenshot: screenshotBase64 ? {
+              base64: screenshotBase64,
+              filename: screenshotFilename,
+              contentType: screenshotContentType
+            } : null
           })
         });
 
@@ -322,6 +455,7 @@
       document.getElementById('title').value = '';
       document.getElementById('description').value = '';
       document.getElementById('priority').value = '2';
+      removeImage();
       document.getElementById('title').focus();
     }
   </script>
