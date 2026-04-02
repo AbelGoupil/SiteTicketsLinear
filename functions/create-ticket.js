@@ -143,7 +143,7 @@ export async function onRequestPost(context) {
       }
     `;
 
-    const finalDescription = imageMarkdown + description.trim();
+    const finalDescription = imageMarkdown + `- [ ] ${description.trim()}`;
 
     const variables = {
       input: {
