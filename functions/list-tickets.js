@@ -1,27 +1,24 @@
 export async function onRequestPost(context) {
   const { env } = context;
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-  };
+  const headers = { 'Content-Type': 'application/json' };
 
   try {
     const body = await context.request.json();
     const { password } = body;
 
     // --- Auth check ---
-    if (password !== env.APP_PASSWORD) {
+    if (!password || password !== env.APP_PASSWORD) {
       return new Response(
         JSON.stringify({ error: 'Mot de passe incorrect.' }),
         { status: 401, headers }
       );
     }
 
-    const PROJECT_ID = 'bbdb4db3-1222-4e59-a521-e41ee3433b9c';
-    const LABEL_VISU_CLIENT = '0bcea0c2-e93b-47b4-aae2-b5ba4fd0f25a';
+    // IDs depuis env vars avec fallback
+    const PROJECT_ID = env.LINEAR_PROJECT_ID || 'bbdb4db3-1222-4e59-a521-e41ee3433b9c';
+    const LABEL_VISU_CLIENT = env.LINEAR_LABEL_VISU || '0bcea0c2-e93b-47b4-aae2-b5ba4fd0f25a';
 
-    // Récupérer les tickets du projet avec le label "Visu client"
     const query = `
       query ListIssues {
         issues(
@@ -38,19 +35,7 @@ export async function onRequestPost(context) {
             title
             description
             priority
-            url
             createdAt
-            state {
-              name
-              color
-              type
-            }
-            labels {
-              nodes {
-                name
-                color
-              }
-            }
           }
         }
       }

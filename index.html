@@ -269,7 +269,7 @@
 
       <div class="field">
         <label for="title">Titre</label>
-        <input type="text" id="title" placeholder="Ex: Bug — Le bouton login ne répond pas">
+        <input type="text" id="title" placeholder="Ex: Bug — Le bouton login ne répond pas" maxlength="200">
       </div>
 
       <div class="field">
@@ -286,7 +286,7 @@
 
       <div class="field">
         <label for="description">Description</label>
-        <textarea id="description" placeholder="Décrivez le bug ou la feature en détail..."></textarea>
+        <textarea id="description" placeholder="Décrivez le bug ou la feature en détail..." maxlength="5000"></textarea>
       </div>
 
       <div class="field">
@@ -346,12 +346,16 @@
     let ticketsData = [];
 
     const PRIORITY_LABELS = { 0: 'Urgent', 1: 'High', 2: 'Medium', 3: 'Low', 4: 'None' };
+    const MAX_TITLE_LENGTH = 200;
+    const MAX_DESCRIPTION_LENGTH = 5000;
+    const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
     // --- Image upload ---
     function handleFile(input) {
       const file = input.files[0];
       if (!file) return;
       if (!file.type.startsWith('image/')) { alert('Seules les images sont acceptées.'); return; }
+      if (file.size > MAX_IMAGE_SIZE) { alert(`Image trop volumineuse (${(file.size / 1024 / 1024).toFixed(1)}MB). Max : 5MB.`); return; }
       screenshotFilename = file.name;
       screenshotContentType = file.type;
       const reader = new FileReader();
@@ -416,6 +420,14 @@
 
       if (!title || !description) {
         errEl.textContent = 'Titre et description sont obligatoires.';
+        errEl.style.display = 'block'; return;
+      }
+      if (title.length > MAX_TITLE_LENGTH) {
+        errEl.textContent = `Le titre ne doit pas dépasser ${MAX_TITLE_LENGTH} caractères (${title.length}/${MAX_TITLE_LENGTH}).`;
+        errEl.style.display = 'block'; return;
+      }
+      if (description.length > MAX_DESCRIPTION_LENGTH) {
+        errEl.textContent = `La description ne doit pas dépasser ${MAX_DESCRIPTION_LENGTH} caractères (${description.length}/${MAX_DESCRIPTION_LENGTH}).`;
         errEl.style.display = 'block'; return;
       }
 
