@@ -27,11 +27,11 @@ export async function onRequestPost(context) {
     const LABEL_VISU_CLIENT = env.LINEAR_LABEL_VISU || '0bcea0c2-e93b-47b4-aae2-b5ba4fd0f25a';
 
     const query = `
-      query ListIssues {
+      query ListIssues($projectId: ID!, $labelId: [String!]) {
         issues(
           filter: {
-            project: { id: { eq: "${PROJECT_ID}" } }
-            labels: { id: { in: ["${LABEL_VISU_CLIENT}"] } }
+            project: { id: { eq: $projectId } }
+            labels: { id: { in: $labelId } }
           }
           orderBy: updatedAt
           first: 50
@@ -54,7 +54,13 @@ export async function onRequestPost(context) {
         'Content-Type': 'application/json',
         'Authorization': env.LINEAR_API_KEY,
       },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({
+        query,
+        variables: {
+          projectId: PROJECT_ID,
+          labelId: [LABEL_VISU_CLIENT],
+        },
+      }),
     });
 
     const linearData = await linearRes.json();

@@ -45,8 +45,7 @@ export async function onRequestPost(context) {
     if (!project) {
       return new Response(
         JSON.stringify({
-          error: `Projet "${slug}" introuvable.`,
-          availableProjects: Object.keys(PROJECTS),
+          error: 'Projet introuvable.',
         }),
         { status: 404, headers }
       );
