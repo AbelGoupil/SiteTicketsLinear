@@ -867,11 +867,17 @@
       var lines = desc.split('\n');
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
+        // Détecte ![alt](url) pour les images ET [text](url) pour les vidéos (Linear reformate les vidéos)
         var imgMatch = line.match(/^!\[(.*?)\]\((.*?)\)$/);
         if (imgMatch) {
-          var altText = imgMatch[1];
           mediaUrl = imgMatch[2];
-          mediaType = (altText === 'video') ? 'video' : 'image';
+          mediaType = (imgMatch[1] === 'video') ? 'video' : 'image';
+          continue;
+        }
+        var linkMatch = line.match(/^\[(.*?)\]\((https:\/\/uploads\.linear\.app\/.*?)\)$/);
+        if (linkMatch && !mediaUrl) {
+          mediaUrl = linkMatch[2];
+          mediaType = 'video'; // Linear transforme ![video] en [filename] pour les vidéos
           continue;
         }
 
