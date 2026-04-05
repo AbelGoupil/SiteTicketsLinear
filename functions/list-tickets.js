@@ -23,6 +23,13 @@ export async function onRequestPost(context) {
       );
     }
 
+    if (!env.LINEAR_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: 'LINEAR_API_KEY non configurée sur le serveur.' }),
+        { status: 500, headers }
+      );
+    }
+
     const PROJECT_ID = projectId;
     const LABEL_VISU_CLIENT = env.LINEAR_LABEL_VISU || '0bcea0c2-e93b-47b4-aae2-b5ba4fd0f25a';
 
