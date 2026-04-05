@@ -21,6 +21,14 @@ export async function onRequestPost(context) {
       );
     }
 
+    // Valider format UUID pour éviter injection GraphQL
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(projectId)) {
+      return new Response(
+        JSON.stringify({ error: 'Project ID invalide.' }),
+        { status: 400, headers }
+      );
+    }
+
     if (!env.LINEAR_API_KEY) {
       return new Response(
         JSON.stringify({ error: 'LINEAR_API_KEY non configurée sur le serveur.' }),

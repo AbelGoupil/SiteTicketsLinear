@@ -148,14 +148,17 @@ export async function onRequestPost(context) {
         );
       }
 
-      if (!uploadData.data?.fileUpload?.success) {
+      if (!uploadData.data && uploadData.data.fileUpload && uploadData.data.fileUpload.success) {
         return new Response(
           JSON.stringify({ error: 'Linear a refusé l\'upload. Réponse : ' + JSON.stringify(uploadData.data) }),
           { status: 502, headers }
         );
       }
 
-      const { uploadUrl, assetUrl, headers: uploadHeaders } = uploadData.data.fileUpload.uploadFile;
+      var uploadFile = uploadData.data.fileUpload.uploadFile;
+      var uploadUrl = uploadFile.uploadUrl;
+      var assetUrl = uploadFile.assetUrl;
+      var uploadHeaders = uploadFile.headers;
 
       // Étape 2 : uploader vers l'URL signée
       const putHeaders = {};
@@ -184,6 +187,13 @@ export async function onRequestPost(context) {
     if (!projectId || typeof projectId !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Project ID manquant.' }),
+        { status: 400, headers }
+      );
+    }
+
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(projectId)) {
+      return new Response(
+        JSON.stringify({ error: 'Project ID invalide.' }),
         { status: 400, headers }
       );
     }
@@ -239,7 +249,7 @@ export async function onRequestPost(context) {
       );
     }
 
-    if (!linearData.data?.issueCreate?.success) {
+    if (!linearData.data && linearData.data.issueCreate && linearData.data.issueCreate.success) {
       return new Response(
         JSON.stringify({ error: 'Linear a refusé la création du ticket. Réponse : ' + JSON.stringify(linearData.data) }),
         { status: 502, headers }
@@ -247,7 +257,7 @@ export async function onRequestPost(context) {
     }
 
     // --- Succès ---
-    const issue = linearData.data.issueCreate.issue;
+    var issue = linearData.data.issueCreate.issue;
     return new Response(
       JSON.stringify({
         success: true,
