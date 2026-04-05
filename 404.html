@@ -366,7 +366,7 @@
               <option value="Pro">Pro</option>
               <option value="Website">Website</option>
                           </select>
-            <input type="text" id="title" placeholder="Le bouton login ne répond pas sur la page d'accueil" maxlength="200" style="flex:1;min-width:0;">
+            <input type="text" id="title" placeholder="Le bouton login ne répond pas sur la page d'accueil" maxlength="200" style="flex:1;min-width:0;" oninput="titleWarningShown=false;">
           </div>
           <div style="font-size:11px;color:#555;margin-top:4px;">Format : [Section] - Description claire du problème</div>
         </div>
@@ -453,7 +453,7 @@
               <option value="Pro">Pro</option>
               <option value="Website">Website</option>
                           </select>
-            <input type="text" id="edit-title" maxlength="200" style="flex:1;min-width:0;">
+            <input type="text" id="edit-title" maxlength="200" style="flex:1;min-width:0;" oninput="editTitleWarningShown=false;">
           </div>
         </div>
         <div class="edit-field">
@@ -502,7 +502,9 @@
     var MIN_TITLE_WORDS = 4;
     var TITLE_BLOCKLIST = ['bug', 'problème', 'probleme', 'test', 'fix', 'truc', 'ça marche pas', 'ca marche pas', 'erreur', 'souci', 'problème design', 'probleme design', 'design', 'pb', 'issue', 'todo', 'à faire', 'a faire', 'voir', 'modifier', 'changer', 'update'];
 
-    var TITLE_ERROR_MSG = 'Êtes-vous sûr que le titre permet de décrire et de comprendre le contenu du ticket en un seul coup d\'œil ?\n\nExemples de bons titres :\n• Le bouton "Connexion" ne répond pas sur la page d\'accueil\n• L\'image de profil ne se met pas à jour après upload\n• Ajouter un filtre par date sur la liste des commandes';
+    var TITLE_ERROR_MSG = 'Êtes-vous sûr que le titre permet de décrire et de comprendre le contenu du ticket en un seul coup d\'œil ?\n\nExemples de bons titres :\n• Le bouton "Connexion" ne répond pas\n• L\'image de profil ne se met pas à jour après upload\n• Ajouter un filtre par date sur la liste des commandes';
+    var titleWarningShown = false; // true = l'avertissement a déjà été affiché, on laisse passer au prochain clic
+    var editTitleWarningShown = false;
 
     function validateTitle(titleText) {
       var t = titleText.trim();
@@ -691,9 +693,15 @@
       var errEl = document.getElementById('ticket-error');
       var btn = document.getElementById('submit-btn');
 
-      // Validation du titre
+      // Validation du titre (avertissement une seule fois, passe au 2e clic)
       var titleError = validateTitle(titleInput);
-      if (titleError) { errEl.innerText = titleError; errEl.style.display = 'block'; return; }
+      if (titleError && !titleWarningShown) {
+        errEl.innerText = titleError;
+        errEl.style.display = 'block';
+        titleWarningShown = true;
+        return;
+      }
+      titleWarningShown = false;
       if (!description) { errEl.innerText = 'La description est obligatoire.'; errEl.style.display = 'block'; return; }
 
       // Construire le titre final avec la section
@@ -1097,7 +1105,13 @@
       var btn = document.getElementById('edit-save-btn');
 
       var titleError = validateTitle(editTitleInput);
-      if (titleError) { errEl.innerText = titleError; errEl.style.display = 'block'; return; }
+      if (titleError && !editTitleWarningShown) {
+        errEl.innerText = titleError;
+        errEl.style.display = 'block';
+        editTitleWarningShown = true;
+        return;
+      }
+      editTitleWarningShown = false;
       if (!description) { errEl.innerText = 'La description est obligatoire.'; errEl.style.display = 'block'; return; }
       var title = editSection + ': ' + editTitleInput;
 
@@ -1156,6 +1170,6 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.5</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.6</div>
 </body>
 </html>
