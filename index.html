@@ -281,6 +281,41 @@
     }
     .detail-checkbox-item.checked span { text-decoration: line-through; color: #666; }
 
+    /* Detail popup: edit mode */
+    .detail-actions { padding: 16px 24px 0; display: flex; gap: 8px; }
+    .detail-actions button {
+      flex: 1; padding: 10px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; cursor: pointer; border: none;
+    }
+    .btn-edit { background: #2a2a2a; color: #fff; }
+    .btn-edit:hover { background: #333; }
+    .btn-save { background: #6c63ff; color: #fff; }
+    .btn-save:hover { background: #5a52d5; }
+    .btn-save:disabled { background: #333; color: #666; cursor: not-allowed; }
+    .btn-cancel { background: #2a2a2a; color: #aaa; }
+    .btn-cancel:hover { background: #333; }
+
+    .edit-field { margin-bottom: 12px; }
+    .edit-field label {
+      display: block; font-size: 11px; font-weight: 600;
+      color: #888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .edit-field input, .edit-field textarea, .edit-field select {
+      width: 100%; padding: 8px 12px; background: #111; border: 1px solid #333;
+      border-radius: 6px; color: #fff; font-size: 14px; font-family: inherit; outline: none;
+    }
+    .edit-field input:focus, .edit-field textarea:focus, .edit-field select:focus { border-color: #6c63ff; }
+    .edit-field textarea { min-height: 80px; resize: vertical; }
+    .edit-field select {
+      cursor: pointer; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+    }
+    .edit-error {
+      background: #2d1515; border: 1px solid #5c2020; color: #ff6b6b;
+      padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; display: none;
+    }
+
     /* Landing page */
     .landing {
       background: #1a1a1a; border: 1px solid #2a2a2a;
@@ -395,6 +430,43 @@
       <div class="detail-body">
         <div id="detail-content"></div>
       </div>
+      <!-- Mode lecture : bouton Modifier -->
+      <div class="detail-actions" id="detail-view-actions">
+        <button class="btn-edit" onclick="enterEditMode()">Modifier</button>
+      </div>
+      <!-- Mode édition : formulaire -->
+      <div id="detail-edit-form" style="display:none; padding: 0 24px 24px;">
+        <div class="edit-error" id="edit-error"></div>
+        <div class="edit-field">
+          <label>Titre</label>
+          <input type="text" id="edit-title" maxlength="200">
+        </div>
+        <div class="edit-field">
+          <label>Description</label>
+          <textarea id="edit-description" maxlength="5000"></textarea>
+        </div>
+        <div class="edit-field">
+          <label>Type</label>
+          <select id="edit-type">
+            <option value="bug">Bug</option>
+            <option value="amelioration">Amélioration</option>
+            <option value="idee">Idée pour plus tard</option>
+          </select>
+        </div>
+        <div class="edit-field">
+          <label>Priorité</label>
+          <select id="edit-priority">
+            <option value="3">Low</option>
+            <option value="2">Medium</option>
+            <option value="1">High</option>
+            <option value="0">Urgent</option>
+          </select>
+        </div>
+        <div class="detail-actions">
+          <button class="btn-cancel" onclick="exitEditMode()">Annuler</button>
+          <button class="btn-save" id="edit-save-btn" onclick="saveEdit()">Enregistrer</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -404,6 +476,7 @@
     var selectedFile = null; // Le fichier brut (File object)
     var ticketsData = [];
     var currentProject = null;
+    var editingTicketIndex = null; // index du ticket en cours d'édition
 
     var PRIORITY_LABELS = { 0: 'Urgent', 1: 'High', 2: 'Medium', 3: 'Low', 4: 'None' };
     var TYPE_LABEL_NAMES = ['Bug', 'Improvement', 'Idée pour plus tard'];
@@ -789,6 +862,8 @@
       var t = ticketsData[index];
       if (!t) return;
 
+      editingTicketIndex = index;
+
       document.getElementById('detail-id').textContent = t.identifier;
       document.getElementById('detail-title').textContent = t.title;
 
@@ -895,12 +970,136 @@
     }
 
     function closeDetail(event) {
-      if (event.target === document.getElementById('detail-overlay'))
+      if (event.target === document.getElementById('detail-overlay')) {
+        exitEditMode();
         document.getElementById('detail-overlay').classList.remove('visible');
+      }
     }
 
     function closeDetailDirect() {
+      exitEditMode();
       document.getElementById('detail-overlay').classList.remove('visible');
+    }
+
+    // --- Mode édition du ticket ---
+    function enterEditMode() {
+      if (editingTicketIndex === null) return;
+      var t = ticketsData[editingTicketIndex];
+      if (!t) return;
+
+      // Parser la description pour extraire le texte sans le media markdown
+      var desc = t.description || '';
+      var parsed = parseDescription(desc);
+
+      // Reconstituer la description éditable depuis les checkboxes et le texte
+      var editableDesc = '';
+      if (parsed.checkboxes.length > 0) {
+        for (var i = 0; i < parsed.checkboxes.length; i++) {
+          var cb = parsed.checkboxes[i];
+          editableDesc += (cb.checked ? '- [x] ' : '- [ ] ') + cb.text + '\n';
+        }
+      }
+      if (parsed.text) {
+        if (editableDesc) editableDesc += '\n';
+        editableDesc += parsed.text;
+      }
+
+      // Pré-remplir les champs
+      document.getElementById('edit-title').value = t.title;
+      document.getElementById('edit-description').value = editableDesc.trim();
+      document.getElementById('edit-priority').value = String(t.priority);
+
+      // Déterminer le type depuis les labels
+      var typeVal = 'bug';
+      if (t.labels && t.labels.nodes) {
+        for (var j = 0; j < t.labels.nodes.length; j++) {
+          var lbl = t.labels.nodes[j].name;
+          if (lbl === 'Bug') typeVal = 'bug';
+          else if (lbl === 'Improvement') typeVal = 'amelioration';
+          else if (lbl === 'Idée pour plus tard') typeVal = 'idee';
+        }
+      }
+      document.getElementById('edit-type').value = typeVal;
+
+      // Masquer le contenu lecture, afficher le formulaire
+      document.getElementById('detail-content').style.display = 'none';
+      document.getElementById('detail-view-actions').style.display = 'none';
+      document.getElementById('detail-edit-form').style.display = 'block';
+      document.getElementById('edit-error').style.display = 'none';
+    }
+
+    function exitEditMode() {
+      document.getElementById('detail-content').style.display = '';
+      document.getElementById('detail-view-actions').style.display = '';
+      document.getElementById('detail-edit-form').style.display = 'none';
+      document.getElementById('edit-error').style.display = 'none';
+    }
+
+    async function saveEdit() {
+      if (editingTicketIndex === null) return;
+      var t = ticketsData[editingTicketIndex];
+      if (!t) return;
+
+      var title = document.getElementById('edit-title').value.trim();
+      var description = document.getElementById('edit-description').value.trim();
+      var priority = parseInt(document.getElementById('edit-priority').value);
+      var ticketType = document.getElementById('edit-type').value;
+      var errEl = document.getElementById('edit-error');
+      var btn = document.getElementById('edit-save-btn');
+
+      if (!title || !description) {
+        errEl.textContent = 'Titre et description sont obligatoires.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      errEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Enregistrement...';
+
+      try {
+        // Reconstituer la description complète avec le media markdown s'il existe
+        var desc = t.description || '';
+        var parsed = parseDescription(desc);
+        var fullDescription = '';
+        if (parsed.mediaUrl) {
+          // Garder le markdown media original (première ligne de la description)
+          var lines = desc.split('\n');
+          for (var i = 0; i < lines.length; i++) {
+            if (lines[i].match(/^!\[.*?\]\(.*?\)$/) || lines[i].match(/^\[.*?\]\(https:\/\/uploads\.linear\.app\/.*?\)$/)) {
+              fullDescription = lines[i] + '\n\n';
+              break;
+            }
+          }
+        }
+        fullDescription += description;
+
+        var res = await fetch('/update-ticket', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            password: authedPassword,
+            issueId: t.id,
+            title: title,
+            description: fullDescription,
+            priority: priority,
+            ticketType: ticketType
+          })
+        });
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur HTTP ' + res.status);
+
+        // Succès : quitter le mode édition, recharger les tickets
+        exitEditMode();
+        closeDetailDirect();
+        loadTickets();
+      } catch (err) {
+        errEl.textContent = 'Erreur : ' + err.message;
+        errEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Enregistrer';
+      }
     }
 
     function escapeHtml(str) {

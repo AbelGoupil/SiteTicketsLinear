@@ -30,7 +30,7 @@ function cleanupOldEntries() {
 }
 
 // Routes API protégées par le middleware
-const API_ROUTES = ['/create-ticket', '/list-tickets', '/get-project-config', '/update-ticket-status', '/upload-file', '/get-file'];
+const API_ROUTES = ['/create-ticket', '/list-tickets', '/get-project-config', '/update-ticket-status', '/upload-file', '/get-file', '/update-ticket'];
 
 // Routes qui acceptent GET (les autres n'acceptent que POST)
 const GET_ROUTES = ['/get-file'];
