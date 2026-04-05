@@ -143,19 +143,25 @@
     /* ===== BOARD COLUMNS ===== */
     #tickets-section {
       display: none;
-      overflow-x: auto; padding-bottom: 8px;
+      padding-bottom: 8px;
     }
 
     .board {
       display: flex; gap: 12px;
-      min-width: max-content;
+      width: 100%;
     }
 
     .board-col {
-      width: 260px; min-width: 260px;
+      flex: 1; min-width: 0;
       background: #141414; border: 1px solid #2a2a2a;
       border-radius: 10px; display: flex;
       flex-direction: column; max-height: calc(100vh - 200px);
+    }
+
+    @media (max-width: 900px) {
+      #tickets-section { overflow-x: auto; }
+      .board { min-width: max-content; }
+      .board-col { width: 220px; min-width: 220px; flex: none; }
     }
 
     .board-col-header {
