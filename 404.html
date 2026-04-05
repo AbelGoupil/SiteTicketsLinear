@@ -135,12 +135,40 @@
     .success-box button:hover { background: #3a7a3a; }
 
     /* Tickets section */
-    #tickets-section { display: none; margin-top: 40px; }
+    #tickets-section { display: none; margin-top: 24px; }
 
-    .section-title {
-      font-size: 18px; font-weight: 700; color: #fff;
-      margin-bottom: 16px; padding-bottom: 8px;
-      border-bottom: 1px solid #2a2a2a;
+    .status-column {
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 10px; margin-bottom: 12px; overflow: hidden;
+    }
+
+    .column-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 18px; cursor: pointer; user-select: none;
+      font-size: 14px; font-weight: 600; color: #fff;
+    }
+    .column-header:hover { color: #6c63ff; }
+    .column-header .header-left { display: flex; align-items: center; gap: 8px; }
+
+    .col-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      display: inline-block; flex-shrink: 0;
+    }
+
+    .col-count {
+      font-size: 11px; color: #666; font-weight: 400;
+      background: #2a2a2a; padding: 1px 7px; border-radius: 10px;
+      margin-left: 4px;
+    }
+
+    .column-body {
+      padding: 0 12px 12px;
+      max-height: 2000px; opacity: 1;
+      transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
+      overflow: hidden;
+    }
+    .column-body.collapsed {
+      max-height: 0; opacity: 0; padding: 0 12px;
     }
 
     .tickets-loading { color: #666; font-size: 14px; text-align: center; padding: 20px; }
@@ -253,18 +281,29 @@
     /* Collapsible form */
     .collapsible-header {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 16px 20px; cursor: pointer; user-select: none;
+      padding: 18px 24px; cursor: pointer; user-select: none;
       font-size: 15px; font-weight: 600; color: #fff;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .collapsible-header.collapsed-header {
+      border-bottom: none;
     }
     .collapsible-header:hover { color: #6c63ff; }
+    .collapsible-header .header-icon {
+      font-size: 18px; margin-right: 10px; color: #6c63ff;
+    }
+    .collapsible-header .header-left { display: flex; align-items: center; }
     .collapsible-arrow {
       font-size: 12px; color: #666; transition: transform 0.2s;
     }
     .collapsible-arrow.collapsed { transform: rotate(-90deg); }
 
     #ticket-form-body {
-      padding: 0 32px 32px; transition: max-height 0.3s ease, opacity 0.2s ease;
-      overflow: hidden;
+      padding: 0 32px 32px;
+      overflow: hidden; max-height: 1000px;
+      transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
+      opacity: 1;
     }
     #ticket-form-body.collapsed {
       max-height: 0; opacity: 0; padding: 0 32px;
@@ -320,11 +359,11 @@
 
     <!-- Formulaire ticket -->
     <div id="ticket-screen" style="display:none">
-      <div class="collapsible-header" onclick="toggleForm()">
-        <span>Créer un ticket</span>
-        <span class="collapsible-arrow" id="form-arrow">&#9660;</span>
+      <div class="collapsible-header collapsed-header" id="form-header" onclick="toggleForm()">
+        <span class="header-left"><span class="header-icon">+</span> Créer un ticket</span>
+        <span class="collapsible-arrow collapsed" id="form-arrow">&#9660;</span>
       </div>
-      <div id="ticket-form-body">
+      <div id="ticket-form-body" class="collapsed">
       <div class="error" id="ticket-error"></div>
 
       <div class="field">
@@ -372,11 +411,46 @@
       </div>
     </div>
 
-    <!-- Tickets -->
+    <!-- Tickets par statut -->
     <div id="tickets-section" style="display:none">
-      <div class="section-title">Tickets en cours</div>
-      <div id="tickets-list">
-        <div class="tickets-loading">Chargement des tickets...</div>
+      <div class="status-column" id="col-backlog">
+        <div class="column-header" onclick="toggleColumn('backlog')">
+          <span class="header-left"><span class="col-dot" style="background:#f2994a"></span> Backlog <span class="col-count" id="count-backlog">0</span></span>
+          <span class="collapsible-arrow" id="arrow-backlog">&#9660;</span>
+        </div>
+        <div class="column-body" id="body-backlog"></div>
+      </div>
+
+      <div class="status-column" id="col-next">
+        <div class="column-header" onclick="toggleColumn('next')">
+          <span class="header-left"><span class="col-dot" style="background:#6c63ff"></span> Voulu en prochaine version <span class="col-count" id="count-next">0</span></span>
+          <span class="collapsible-arrow" id="arrow-next">&#9660;</span>
+        </div>
+        <div class="column-body" id="body-next"></div>
+      </div>
+
+      <div class="status-column" id="col-dev">
+        <div class="column-header" onclick="toggleColumn('dev')">
+          <span class="header-left"><span class="col-dot" style="background:#f2c94c"></span> En cours de code <span class="col-count" id="count-dev">0</span></span>
+          <span class="collapsible-arrow" id="arrow-dev">&#9660;</span>
+        </div>
+        <div class="column-body" id="body-dev"></div>
+      </div>
+
+      <div class="status-column" id="col-qa">
+        <div class="column-header" onclick="toggleColumn('qa')">
+          <span class="header-left"><span class="col-dot" style="background:#BB87FC"></span> En cours de qualif <span class="col-count" id="count-qa">0</span></span>
+          <span class="collapsible-arrow" id="arrow-qa">&#9660;</span>
+        </div>
+        <div class="column-body" id="body-qa"></div>
+      </div>
+
+      <div class="status-column" id="col-done">
+        <div class="column-header" onclick="toggleColumn('done')">
+          <span class="header-left"><span class="col-dot" style="background:#4ade80"></span> Livré <span class="col-count" id="count-done">0</span></span>
+          <span class="collapsible-arrow collapsed" id="arrow-done">&#9660;</span>
+        </div>
+        <div class="column-body collapsed" id="body-done"></div>
       </div>
     </div>
   </div>
@@ -420,6 +494,20 @@
 
     const PRIORITY_LABELS = { 0: 'Urgent', 1: 'High', 2: 'Medium', 3: 'Low', 4: 'None' };
     const TYPE_LABEL_NAMES = ['Bug', 'Improvement', 'Idée pour plus tard'];
+
+    // Mapping statuts Linear → colonnes
+    var STATUS_TO_COLUMN = {
+      'Triage': 'backlog',
+      'Shaping': 'backlog',
+      'To Estimate': 'backlog',
+      'Todo': 'backlog',
+      'Later': 'next',
+      'In Dev': 'dev',
+      'In Design': 'dev',
+      'In Review': 'qa',
+      'Reviewed and Pending': 'qa',
+      'Deployed': 'done',
+    };
 
     function getTypeLabelHtml(ticket) {
       if (!ticket.labels || !ticket.labels.nodes) return '';
@@ -609,8 +697,10 @@
 
     // --- Load tickets ---
     async function loadTickets() {
-      const listEl = document.getElementById('tickets-list');
-      listEl.innerHTML = '<div class="tickets-loading">Chargement des tickets...</div>';
+      var columns = ['backlog', 'next', 'dev', 'qa', 'done'];
+      for (var c = 0; c < columns.length; c++) {
+        document.getElementById('body-' + columns[c]).innerHTML = '<div class="tickets-loading">Chargement...</div>';
+      }
 
       try {
         const res = await fetch('/list-tickets', {
@@ -623,22 +713,42 @@
 
         ticketsData = data.tickets || [];
 
-        if (ticketsData.length === 0) {
-          listEl.innerHTML = '<div class="no-tickets">Aucun ticket à afficher.</div>';
-          return;
+        // Grouper par colonne
+        var grouped = { backlog: [], next: [], dev: [], qa: [], done: [] };
+        for (var i = 0; i < ticketsData.length; i++) {
+          var t = ticketsData[i];
+          var stateName = (t.state && t.state.name) ? t.state.name : '';
+          var col = STATUS_TO_COLUMN[stateName] || 'backlog';
+          grouped[col].push({ ticket: t, globalIndex: i });
         }
 
-        listEl.innerHTML = ticketsData.map((t, i) => `
-          <div class="ticket-card" onclick="openDetail(${i})">
-            <span class="ticket-id">${escapeHtml(t.identifier)}</span>
-            <span class="ticket-title-card">${escapeHtml(t.title)}</span>
-            ${getTypeLabelHtml(t)}
-            <span class="ticket-priority priority-${t.priority}">${PRIORITY_LABELS[t.priority] || '?'}</span>
-          </div>
-        `).join('');
+        for (var c = 0; c < columns.length; c++) {
+          var colKey = columns[c];
+          var bodyEl = document.getElementById('body-' + colKey);
+          var countEl = document.getElementById('count-' + colKey);
+          var items = grouped[colKey];
+
+          countEl.textContent = items.length;
+
+          if (items.length === 0) {
+            bodyEl.innerHTML = '<div class="no-tickets">Aucun ticket</div>';
+          } else {
+            bodyEl.innerHTML = items.map(function(item) {
+              var t = item.ticket;
+              return '<div class="ticket-card" onclick="openDetail(' + item.globalIndex + ')">' +
+                '<span class="ticket-id">' + escapeHtml(t.identifier) + '</span>' +
+                '<span class="ticket-title-card">' + escapeHtml(t.title) + '</span>' +
+                getTypeLabelHtml(t) +
+                '<span class="ticket-priority priority-' + t.priority + '">' + (PRIORITY_LABELS[t.priority] || '?') + '</span>' +
+                '</div>';
+            }).join('');
+          }
+        }
 
       } catch (err) {
-        listEl.innerHTML = `<div class="no-tickets" style="color:#ff6b6b">Erreur : ${escapeHtml(err.message)}</div>`;
+        for (var c = 0; c < columns.length; c++) {
+          document.getElementById('body-' + columns[c]).innerHTML = '<div class="no-tickets" style="color:#ff6b6b">Erreur : ' + escapeHtml(err.message) + '</div>';
+        }
       }
     }
 
@@ -722,11 +832,20 @@
       document.getElementById('detail-overlay').classList.remove('visible');
     }
 
+    function toggleColumn(colKey) {
+      var body = document.getElementById('body-' + colKey);
+      var arrow = document.getElementById('arrow-' + colKey);
+      body.classList.toggle('collapsed');
+      arrow.classList.toggle('collapsed');
+    }
+
     function toggleForm() {
       var body = document.getElementById('ticket-form-body');
       var arrow = document.getElementById('form-arrow');
+      var header = document.getElementById('form-header');
       body.classList.toggle('collapsed');
       arrow.classList.toggle('collapsed');
+      header.classList.toggle('collapsed-header');
     }
 
     function escapeHtml(str) {
