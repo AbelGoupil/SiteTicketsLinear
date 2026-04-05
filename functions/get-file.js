@@ -1,6 +1,6 @@
 // Proxy sécurisé pour les fichiers Linear (images/vidéos)
-// Les fichiers Linear sont privés et nécessitent une authentification
-// Cette function les fetch côté serveur et les retourne au navigateur
+// Les fichiers Linear sont privés (URLs signées expirent en ~5min)
+// Cette function fetch les fichiers côté serveur avec l'API key Linear
 
 const ALLOWED_HOSTS = ['uploads.linear.app'];
 
@@ -34,7 +34,35 @@ export async function onRequestGet(context) {
 
   // --- Fetch le fichier depuis Linear ---
   try {
-    const fileRes = await fetch(targetUrl);
+    // Essai 1 : avec l'URL signée telle quelle (si le token est encore valide)
+    let fileRes = await fetch(targetUrl);
+
+    // Essai 2 : si le token est expiré, re-fetch avec l'API key Linear
+    if (!fileRes.ok) {
+      // Retirer le query param signature de l'URL
+      const cleanUrl = new URL(targetUrl);
+      cleanUrl.searchParams.delete('signature');
+      const baseUrl = cleanUrl.toString();
+
+      fileRes = await fetch(baseUrl, {
+        headers: {
+          'Authorization': env.LINEAR_API_KEY,
+        },
+      });
+    }
+
+    // Essai 3 : si ça ne marche toujours pas, essayer avec Bearer
+    if (!fileRes.ok) {
+      const cleanUrl = new URL(targetUrl);
+      cleanUrl.searchParams.delete('signature');
+      const baseUrl = cleanUrl.toString();
+
+      fileRes = await fetch(baseUrl, {
+        headers: {
+          'Authorization': 'Bearer ' + env.LINEAR_API_KEY,
+        },
+      });
+    }
 
     if (!fileRes.ok) {
       return new Response('Erreur récupération fichier (' + fileRes.status + ').', { status: 502 });
