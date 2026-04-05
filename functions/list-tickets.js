@@ -27,7 +27,7 @@ export async function onRequestPost(context) {
     const LABEL_VISU_CLIENT = env.LINEAR_LABEL_VISU || '0bcea0c2-e93b-47b4-aae2-b5ba4fd0f25a';
 
     const query = `
-      query ListIssues($projectId: ID!, $labelId: [String!]) {
+      query ListIssues($projectId: String!, $labelId: [String!]) {
         issues(
           filter: {
             project: { id: { eq: $projectId } }
@@ -82,7 +82,7 @@ export async function onRequestPost(context) {
 
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: `Erreur serveur : ${err.message}` }),
+      JSON.stringify({ error: `Erreur serveur list-tickets : ${err.message}` }),
       { status: 500, headers }
     );
   }
