@@ -805,11 +805,12 @@
       if (oldVideo) oldVideo.remove();
 
       if (parsed.imageUrl) {
+        var proxiedUrl = proxyFileUrl(parsed.imageUrl);
         var isVideoUrl = /\.(mp4|mov|webm|avi)(\?|$)/i.test(parsed.imageUrl);
         if (isVideoUrl) {
           imgEl.style.display = 'none';
           var vid = document.createElement('video');
-          vid.src = parsed.imageUrl;
+          vid.src = proxiedUrl;
           vid.controls = true;
           vid.style.width = '100%';
           vid.style.display = 'block';
@@ -817,7 +818,7 @@
           imgContainer.appendChild(vid);
         } else {
           imgEl.style.display = 'block';
-          imgEl.src = parsed.imageUrl;
+          imgEl.src = proxiedUrl;
         }
         imgContainer.style.display = 'block';
       } else {
@@ -847,6 +848,14 @@
 
       contentEl.innerHTML = html;
       document.getElementById('detail-overlay').classList.add('visible');
+    }
+
+    // Proxy les URLs Linear privées via /get-file pour qu'elles s'affichent partout
+    function proxyFileUrl(url) {
+      if (url && url.indexOf('uploads.linear.app') !== -1) {
+        return '/get-file?url=' + encodeURIComponent(url) + '&p=' + encodeURIComponent(authedPassword);
+      }
+      return url;
     }
 
     function parseDescription(desc) {

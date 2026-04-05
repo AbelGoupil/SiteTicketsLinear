@@ -30,7 +30,10 @@ function cleanupOldEntries() {
 }
 
 // Routes API protégées par le middleware
-const API_ROUTES = ['/create-ticket', '/list-tickets', '/get-project-config', '/update-ticket-status', '/upload-file'];
+const API_ROUTES = ['/create-ticket', '/list-tickets', '/get-project-config', '/update-ticket-status', '/upload-file', '/get-file'];
+
+// Routes qui acceptent GET (les autres n'acceptent que POST)
+const GET_ROUTES = ['/get-file'];
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -69,17 +72,20 @@ export async function onRequest(context) {
     });
   }
 
-  // Bloquer les méthodes non-POST sur les routes API
-  if (request.method !== 'POST') {
+  // Vérifier la méthode HTTP selon la route
+  const isGetRoute = GET_ROUTES.some(route => url.pathname === route);
+  const allowedMethod = isGetRoute ? 'GET' : 'POST';
+
+  if (request.method !== allowedMethod) {
     return new Response(
       JSON.stringify({ error: 'Méthode non autorisée.' }),
       { status: 405, headers: { 'Content-Type': 'application/json' } }
     );
   }
 
-  // --- Rate limiting ---
+  // --- Rate limiting (exclure get-file car les images sont cachées côté navigateur) ---
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  if (isRateLimited(ip)) {
+  if (url.pathname !== '/get-file' && isRateLimited(ip)) {
     return new Response(
       JSON.stringify({ error: 'Trop de requêtes. Réessayez dans une minute.' }),
       {
