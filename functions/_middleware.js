@@ -19,28 +19,27 @@ function isRateLimited(ip) {
   return false;
 }
 
-// Nettoyage périodique (éviter fuite mémoire)
-setInterval(() => {
+// Nettoyage lazy : supprimer les entrées périmées à chaque requête
+function cleanupOldEntries() {
   const now = Date.now();
   for (const [ip, entry] of requestCounts) {
     if (now - entry.windowStart > RATE_LIMIT_WINDOW * 2) {
       requestCounts.delete(ip);
     }
   }
-}, RATE_LIMIT_WINDOW * 2);
+}
 
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
 
-  // Seules les routes /create-ticket et /list-tickets passent par ici
-  // Les fichiers statiques sont servis directement par Cloudflare Pages
+  // Nettoyage lazy à chaque requête (pas de setInterval en global scope)
+  cleanupOldEntries();
 
   // --- CORS : restreindre à notre domaine ---
   const allowedOrigins = [
     url.origin, // même domaine (Cloudflare Pages)
   ];
-  // Si une variable d'env ALLOWED_ORIGIN est définie, l'ajouter
   if (env.ALLOWED_ORIGIN) {
     allowedOrigins.push(env.ALLOWED_ORIGIN);
   }
@@ -93,7 +92,6 @@ export async function onRequest(context) {
   newHeaders.set('X-Content-Type-Options', 'nosniff');
   newHeaders.set('X-Frame-Options', 'DENY');
   newHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  // Supprimer le wildcard CORS si présent dans la réponse originale
   if (newHeaders.get('Access-Control-Allow-Origin') === '*') {
     newHeaders.set('Access-Control-Allow-Origin', corsOrigin);
   }
