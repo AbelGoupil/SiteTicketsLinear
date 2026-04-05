@@ -359,8 +359,17 @@
       <div id="ticket-form-body" class="collapsed">
         <div class="error" id="ticket-error"></div>
         <div class="field">
-          <label for="title">Titre</label>
-          <input type="text" id="title" placeholder="Ex: [User] ou [Pro] - Le bouton login ne répond pas" maxlength="200">
+          <label>Titre</label>
+          <div style="display:flex;gap:8px;align-items:stretch;">
+            <select id="title-section" style="flex:0 0 auto;min-width:100px;">
+              <option value="User">User</option>
+              <option value="Pro">Pro</option>
+              <option value="Website">Website</option>
+              <option value="App">App</option>
+            </select>
+            <input type="text" id="title" placeholder="Le bouton login ne répond pas sur la page d'accueil" maxlength="200" style="flex:1;">
+          </div>
+          <div style="font-size:11px;color:#555;margin-top:4px;">Format : [Section] - Description claire du problème</div>
         </div>
         <div class="field">
           <label for="screenshot">Capture d'écran ou vidéo (obligatoire si c'est un bug)</label>
@@ -439,7 +448,15 @@
         <div class="edit-error" id="edit-error"></div>
         <div class="edit-field">
           <label>Titre</label>
-          <input type="text" id="edit-title" maxlength="200">
+          <div style="display:flex;gap:8px;align-items:stretch;">
+            <select id="edit-title-section" style="flex:0 0 auto;min-width:100px;">
+              <option value="User">User</option>
+              <option value="Pro">Pro</option>
+              <option value="Website">Website</option>
+              <option value="App">App</option>
+            </select>
+            <input type="text" id="edit-title" maxlength="200" style="flex:1;">
+          </div>
         </div>
         <div class="edit-field">
           <label>Description</label>
@@ -483,6 +500,22 @@
     var MAX_TITLE_LENGTH = 200;
     var MAX_DESCRIPTION_LENGTH = 5000;
     var MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+    var MIN_TITLE_LENGTH = 15;
+    var MIN_TITLE_WORDS = 4;
+    var TITLE_BLOCKLIST = ['bug', 'problème', 'probleme', 'test', 'fix', 'truc', 'ça marche pas', 'ca marche pas', 'erreur', 'souci', 'problème design', 'probleme design', 'design', 'pb', 'issue', 'todo', 'à faire', 'a faire', 'voir', 'modifier', 'changer', 'update'];
+
+    function validateTitle(titleText) {
+      var t = titleText.trim();
+      if (!t) return 'Le titre est obligatoire.';
+      if (t.length < MIN_TITLE_LENGTH) return 'Le titre doit faire au moins ' + MIN_TITLE_LENGTH + ' caractères. Soyez descriptif.';
+      var words = t.split(/\s+/).filter(function(w) { return w.length > 0; });
+      if (words.length < MIN_TITLE_WORDS) return 'Le titre doit contenir au moins ' + MIN_TITLE_WORDS + ' mots pour être compréhensible.';
+      var lower = t.toLowerCase();
+      for (var i = 0; i < TITLE_BLOCKLIST.length; i++) {
+        if (lower === TITLE_BLOCKLIST[i]) return 'Le titre doit décrire le ticket explicitement. Il faut comprendre le contenu du ticket juste à la lecture du titre. Ex: "Le bouton de connexion ne répond pas sur la page d\'accueil"';
+      }
+      return null; // OK
+    }
 
     // Columns config
     var COLUMNS = [
@@ -650,14 +683,21 @@
 
     // --- Create ticket ---
     async function createTicket() {
-      var title = document.getElementById('title').value.trim();
+      var section = document.getElementById('title-section').value;
+      var titleInput = document.getElementById('title').value.trim();
       var description = document.getElementById('description').value.trim();
       var priority = document.getElementById('priority').value;
       var ticketType = document.getElementById('ticket-type').value;
       var errEl = document.getElementById('ticket-error');
       var btn = document.getElementById('submit-btn');
 
-      if (!title || !description) { errEl.textContent = 'Titre et description sont obligatoires.'; errEl.style.display = 'block'; return; }
+      // Validation du titre
+      var titleError = validateTitle(titleInput);
+      if (titleError) { errEl.textContent = titleError; errEl.style.display = 'block'; return; }
+      if (!description) { errEl.textContent = 'La description est obligatoire.'; errEl.style.display = 'block'; return; }
+
+      // Construire le titre final avec la section
+      var title = section + ': ' + titleInput;
       if (title.length > MAX_TITLE_LENGTH) { errEl.textContent = 'Titre trop long.'; errEl.style.display = 'block'; return; }
       if (description.length > MAX_DESCRIPTION_LENGTH) { errEl.textContent = 'Description trop longue.'; errEl.style.display = 'block'; return; }
 
@@ -708,6 +748,7 @@
 
     function closeSuccess() {
       document.getElementById('success-overlay').classList.remove('visible');
+      document.getElementById('title-section').value = 'User';
       document.getElementById('title').value = '';
       document.getElementById('description').value = '';
       document.getElementById('priority').value = '2';
@@ -1004,8 +1045,15 @@
         editableDesc += parsed.text;
       }
 
-      // Pré-remplir les champs
-      document.getElementById('edit-title').value = t.title;
+      // Pré-remplir les champs — parser section depuis le titre existant
+      var titleParts = (t.title || '').match(/^(User|Pro|Website|App)\s*:\s*(.*)$/i);
+      if (titleParts) {
+        document.getElementById('edit-title-section').value = titleParts[1];
+        document.getElementById('edit-title').value = titleParts[2];
+      } else {
+        document.getElementById('edit-title-section').value = 'User';
+        document.getElementById('edit-title').value = t.title;
+      }
       document.getElementById('edit-description').value = editableDesc.trim();
       document.getElementById('edit-priority').value = String(t.priority);
 
@@ -1040,18 +1088,18 @@
       var t = ticketsData[editingTicketIndex];
       if (!t) return;
 
-      var title = document.getElementById('edit-title').value.trim();
+      var editSection = document.getElementById('edit-title-section').value;
+      var editTitleInput = document.getElementById('edit-title').value.trim();
       var description = document.getElementById('edit-description').value.trim();
       var priority = parseInt(document.getElementById('edit-priority').value);
       var ticketType = document.getElementById('edit-type').value;
       var errEl = document.getElementById('edit-error');
       var btn = document.getElementById('edit-save-btn');
 
-      if (!title || !description) {
-        errEl.textContent = 'Titre et description sont obligatoires.';
-        errEl.style.display = 'block';
-        return;
-      }
+      var titleError = validateTitle(editTitleInput);
+      if (titleError) { errEl.textContent = titleError; errEl.style.display = 'block'; return; }
+      if (!description) { errEl.textContent = 'La description est obligatoire.'; errEl.style.display = 'block'; return; }
+      var title = editSection + ': ' + editTitleInput;
 
       errEl.style.display = 'none';
       btn.disabled = true;
@@ -1108,6 +1156,6 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.2</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.3</div>
 </body>
 </html>
