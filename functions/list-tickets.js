@@ -1,9 +1,8 @@
 export async function onRequestPost(context) {
-  const { env } = context;
-
   const headers = { 'Content-Type': 'application/json' };
 
   try {
+    const { env } = context;
     const body = await context.request.json();
     const { password, projectId } = body;
 
@@ -15,7 +14,6 @@ export async function onRequestPost(context) {
       );
     }
 
-    // --- Validation projectId ---
     if (!projectId || typeof projectId !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Project ID manquant.' }),
@@ -30,30 +28,11 @@ export async function onRequestPost(context) {
       );
     }
 
-    const PROJECT_ID = projectId;
     const LABEL_VISU_CLIENT = env.LINEAR_LABEL_VISU || '0bcea0c2-e93b-47b4-aae2-b5ba4fd0f25a';
 
-    const query = `
-      query ListIssues($projectId: String!, $labelId: [String!]) {
-        issues(
-          filter: {
-            project: { id: { eq: $projectId } }
-            labels: { id: { in: $labelId } }
-          }
-          orderBy: updatedAt
-          first: 50
-        ) {
-          nodes {
-            id
-            identifier
-            title
-            description
-            priority
-            createdAt
-          }
-        }
-      }
-    `;
+    const graphqlBody = JSON.stringify({
+      query: `query { issues(filter: { project: { id: { eq: "${projectId}" } }, labels: { id: { in: ["${LABEL_VISU_CLIENT}"] } } }, orderBy: updatedAt, first: 50) { nodes { id identifier title description priority createdAt } } }`
+    });
 
     const linearRes = await fetch('https://api.linear.app/graphql', {
       method: 'POST',
@@ -61,26 +40,22 @@ export async function onRequestPost(context) {
         'Content-Type': 'application/json',
         'Authorization': env.LINEAR_API_KEY,
       },
-      body: JSON.stringify({
-        query,
-        variables: {
-          projectId: PROJECT_ID,
-          labelId: [LABEL_VISU_CLIENT],
-        },
-      }),
+      body: graphqlBody,
     });
 
     const linearData = await linearRes.json();
 
     if (linearData.errors) {
-      const errorMessages = linearData.errors.map(e => e.message).join(' | ');
       return new Response(
-        JSON.stringify({ error: `Erreur API Linear : ${errorMessages}` }),
+        JSON.stringify({ error: 'Erreur API Linear : ' + linearData.errors.map(function(e) { return e.message; }).join(' | ') }),
         { status: 502, headers }
       );
     }
 
-    const issues = linearData.data?.issues?.nodes || [];
+    var issues = [];
+    if (linearData.data && linearData.data.issues && linearData.data.issues.nodes) {
+      issues = linearData.data.issues.nodes;
+    }
 
     return new Response(
       JSON.stringify({ success: true, tickets: issues }),
@@ -89,7 +64,7 @@ export async function onRequestPost(context) {
 
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: `Erreur serveur list-tickets : ${err.message}` }),
+      JSON.stringify({ error: 'Erreur serveur list-tickets : ' + (err && err.message ? err.message : String(err)) }),
       { status: 500, headers }
     );
   }
