@@ -394,6 +394,10 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ slug: path })
         });
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          throw new Error('Les fonctions API ne sont pas disponibles. Vérifiez le déploiement Cloudflare.');
+        }
         const data = await res.json();
 
         if (!res.ok) {
