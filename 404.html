@@ -975,11 +975,11 @@
 
       contentEl.innerHTML = html;
 
-      // Afficher le bouton Supprimer uniquement pour backlog et next
+      // Afficher Modifier + Supprimer uniquement pour backlog et next
       var currentState = (t.state && t.state.name) ? t.state.name : '';
       var currentCol = STATUS_TO_COLUMN[currentState] || 'backlog';
-      var deleteBtn = document.getElementById('btn-delete-ticket');
-      deleteBtn.style.display = (currentCol === 'backlog' || currentCol === 'next') ? '' : 'none';
+      var canEdit = (currentCol === 'backlog' || currentCol === 'next');
+      document.getElementById('detail-view-actions').style.display = canEdit ? '' : 'none';
 
       document.getElementById('detail-overlay').classList.add('visible');
     }
@@ -1213,6 +1213,6 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.7</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.8</div>
 </body>
 </html>
