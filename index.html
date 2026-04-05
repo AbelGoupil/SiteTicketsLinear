@@ -313,6 +313,15 @@
       </div>
 
       <div class="field">
+        <label for="ticket-type">Type</label>
+        <select id="ticket-type">
+          <option value="bug">Bug</option>
+          <option value="amelioration">Amélioration</option>
+          <option value="idee">Idée pour plus tard</option>
+        </select>
+      </div>
+
+      <div class="field">
         <label for="priority">Priorité</label>
         <select id="priority">
           <option value="3">Low</option>
@@ -495,6 +504,7 @@
       const title = document.getElementById('title').value.trim();
       const description = document.getElementById('description').value.trim();
       const priority = document.getElementById('priority').value;
+      const ticketType = document.getElementById('ticket-type').value;
       const errEl = document.getElementById('ticket-error');
       const btn = document.getElementById('submit-btn');
 
@@ -520,6 +530,7 @@
           body: JSON.stringify({
             password: authedPassword, title, description,
             priority: parseInt(priority),
+            ticketType: ticketType,
             projectId: currentProject.projectId,
             screenshot: screenshotBase64 ? { base64: screenshotBase64, filename: screenshotFilename, contentType: screenshotContentType } : null
           })
@@ -539,6 +550,7 @@
       document.getElementById('title').value = '';
       document.getElementById('description').value = '';
       document.getElementById('priority').value = '2';
+      document.getElementById('ticket-type').value = 'bug';
       removeImage();
       document.getElementById('title').focus();
       loadTickets();

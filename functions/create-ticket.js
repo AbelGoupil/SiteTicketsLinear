@@ -20,7 +20,7 @@ export async function onRequestPost(context) {
     }
 
     const body = await context.request.json();
-    const { password, title, description, priority, screenshot, projectId } = body;
+    const { password, title, description, priority, screenshot, projectId, ticketType } = body;
 
     // --- Auth check ---
     if (!password || password !== env.APP_PASSWORD) {
@@ -65,6 +65,22 @@ export async function onRequestPost(context) {
         { status: 400, headers }
       );
     }
+
+    // --- Validation et mapping ticketType → labelId ---
+    var TYPE_LABELS = {
+      bug: '7d309bb5-6855-4088-9cc7-9cb534ed1868',
+      amelioration: 'c27e7bee-464a-4621-88cc-a96ac8eedb02',
+      idee: '7958f0fe-ef75-4a74-bd24-f88abde1edbf',
+    };
+
+    if (!ticketType || !TYPE_LABELS[ticketType]) {
+      return new Response(
+        JSON.stringify({ error: 'Type de ticket invalide. Valeurs acceptées : bug, amelioration, idee.' }),
+        { status: 400, headers }
+      );
+    }
+
+    var typeLabelId = TYPE_LABELS[ticketType];
 
     const linearHeaders = {
       'Content-Type': 'application/json',
@@ -229,7 +245,7 @@ export async function onRequestPost(context) {
         title: title.trim(),
         description: finalDescription,
         priority: priority,
-        labelIds: [LABEL_VISU_CLIENT, LABEL_RETOUR_CLIENT],
+        labelIds: [LABEL_VISU_CLIENT, LABEL_RETOUR_CLIENT, typeLabelId],
       },
     };
 
