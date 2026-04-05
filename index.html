@@ -156,6 +156,11 @@
       flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
 
+    .ticket-label {
+      font-size: 10px; font-weight: 600; padding: 2px 8px;
+      border-radius: 4px; flex-shrink: 0; white-space: nowrap;
+    }
+
     .ticket-priority {
       font-size: 11px; font-weight: 600; padding: 2px 8px;
       border-radius: 4px; text-transform: uppercase; flex-shrink: 0;
@@ -381,6 +386,19 @@
     let currentProject = null; // { slug, name, projectId }
 
     const PRIORITY_LABELS = { 0: 'Urgent', 1: 'High', 2: 'Medium', 3: 'Low', 4: 'None' };
+    const TYPE_LABEL_NAMES = ['Bug', 'Improvement', 'Idée pour plus tard'];
+
+    function getTypeLabelHtml(ticket) {
+      if (!ticket.labels || !ticket.labels.nodes) return '';
+      for (var i = 0; i < ticket.labels.nodes.length; i++) {
+        var label = ticket.labels.nodes[i];
+        if (TYPE_LABEL_NAMES.indexOf(label.name) !== -1) {
+          var displayName = label.name === 'Improvement' ? 'Amélioration' : label.name;
+          return '<span class="ticket-label" style="background:' + label.color + '22; color:' + label.color + '">' + escapeHtml(displayName) + '</span>';
+        }
+      }
+      return '';
+    }
     const MAX_TITLE_LENGTH = 200;
     const MAX_DESCRIPTION_LENGTH = 5000;
     const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -581,6 +599,7 @@
           <div class="ticket-card" onclick="openDetail(${i})">
             <span class="ticket-id">${escapeHtml(t.identifier)}</span>
             <span class="ticket-title-card">${escapeHtml(t.title)}</span>
+            ${getTypeLabelHtml(t)}
             <span class="ticket-priority priority-${t.priority}">${PRIORITY_LABELS[t.priority] || '?'}</span>
           </div>
         `).join('');
