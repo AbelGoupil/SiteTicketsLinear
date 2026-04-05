@@ -30,7 +30,7 @@ function cleanupOldEntries() {
 }
 
 // Routes API protégées par le middleware
-const API_ROUTES = ['/create-ticket', '/list-tickets', '/get-project-config', '/update-ticket-status'];
+const API_ROUTES = ['/create-ticket', '/list-tickets', '/get-project-config', '/update-ticket-status', '/upload-file'];
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -63,7 +63,7 @@ export async function onRequest(context) {
       headers: {
         'Access-Control-Allow-Origin': corsOrigin,
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, X-App-Password, X-File-Type, X-File-Name',
         'Access-Control-Max-Age': '86400',
       },
     });

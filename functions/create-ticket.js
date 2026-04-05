@@ -1,8 +1,6 @@
 // Limites
 const MAX_TITLE_LENGTH = 200;
 const MAX_DESCRIPTION_LENGTH = 5000;
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
 
 export async function onRequestPost(context) {
   const { env } = context;
@@ -20,7 +18,7 @@ export async function onRequestPost(context) {
     }
 
     const body = await context.request.json();
-    const { password, title, description, priority, screenshot, projectId, ticketType } = body;
+    const { password, title, description, priority, assetUrl, projectId, ticketType } = body;
 
     // --- Auth check ---
     if (!password || password !== env.APP_PASSWORD) {
@@ -87,116 +85,18 @@ export async function onRequestPost(context) {
       'Authorization': env.LINEAR_API_KEY,
     };
 
-    // --- Upload screenshot si présent ---
-    let imageMarkdown = '';
+    // --- Fichier joint (déjà uploadé via /upload-file) ---
+    let attachmentMarkdown = '';
 
-    if (screenshot && screenshot.base64) {
-      // Valider le contentType
-      if (!screenshot.contentType || !ALLOWED_IMAGE_TYPES.includes(screenshot.contentType)) {
+    if (assetUrl && typeof assetUrl === 'string') {
+      // Valider que c'est bien une URL Linear
+      if (!assetUrl.startsWith('https://')) {
         return new Response(
-          JSON.stringify({ error: `Type d'image non autorisé : ${screenshot.contentType}. Types acceptés : ${ALLOWED_IMAGE_TYPES.join(', ')}` }),
+          JSON.stringify({ error: 'URL de fichier invalide.' }),
           { status: 400, headers }
         );
       }
-
-      // Valider le filename
-      if (!screenshot.filename || typeof screenshot.filename !== 'string') {
-        return new Response(
-          JSON.stringify({ error: 'Nom de fichier invalide.' }),
-          { status: 400, headers }
-        );
-      }
-
-      // Décoder le base64 et vérifier la taille
-      let binaryData;
-      try {
-        binaryData = Uint8Array.from(atob(screenshot.base64), c => c.charCodeAt(0));
-      } catch {
-        return new Response(
-          JSON.stringify({ error: 'Image invalide (base64 corrompu).' }),
-          { status: 400, headers }
-        );
-      }
-
-      if (binaryData.length > MAX_IMAGE_SIZE) {
-        return new Response(
-          JSON.stringify({ error: `Image trop volumineuse (${(binaryData.length / 1024 / 1024).toFixed(1)}MB). Max : 5MB.` }),
-          { status: 400, headers }
-        );
-      }
-
-      // Étape 1 : demander une URL d'upload à Linear
-      const uploadMutation = `
-        mutation FileUpload($size: Int!, $contentType: String!, $filename: String!) {
-          fileUpload(size: $size, contentType: $contentType, filename: $filename) {
-            success
-            uploadFile {
-              uploadUrl
-              assetUrl
-              headers {
-                key
-                value
-              }
-            }
-          }
-        }
-      `;
-
-      const uploadRes = await fetch('https://api.linear.app/graphql', {
-        method: 'POST',
-        headers: linearHeaders,
-        body: JSON.stringify({
-          query: uploadMutation,
-          variables: {
-            size: binaryData.length,
-            contentType: screenshot.contentType,
-            filename: screenshot.filename.substring(0, 100), // limiter le nom
-          },
-        }),
-      });
-
-      const uploadData = await uploadRes.json();
-
-      if (uploadData.errors) {
-        return new Response(
-          JSON.stringify({ error: `Erreur upload Linear : ${uploadData.errors.map(e => e.message).join(' | ')}` }),
-          { status: 502, headers }
-        );
-      }
-
-      if (!uploadData.data && uploadData.data.fileUpload && uploadData.data.fileUpload.success) {
-        return new Response(
-          JSON.stringify({ error: 'Linear a refusé l\'upload. Réponse : ' + JSON.stringify(uploadData.data) }),
-          { status: 502, headers }
-        );
-      }
-
-      var uploadFile = uploadData.data.fileUpload.uploadFile;
-      var uploadUrl = uploadFile.uploadUrl;
-      var assetUrl = uploadFile.assetUrl;
-      var uploadHeaders = uploadFile.headers;
-
-      // Étape 2 : uploader vers l'URL signée
-      const putHeaders = {};
-      for (const h of uploadHeaders) {
-        putHeaders[h.key] = h.value;
-      }
-      putHeaders['Content-Type'] = screenshot.contentType;
-
-      const putRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: putHeaders,
-        body: binaryData,
-      });
-
-      if (!putRes.ok) {
-        return new Response(
-          JSON.stringify({ error: `Erreur upload fichier (HTTP ${putRes.status}).` }),
-          { status: 502, headers }
-        );
-      }
-
-      imageMarkdown = `![screenshot](${assetUrl})\n\n`;
+      attachmentMarkdown = `![attachment](${assetUrl})\n\n`;
     }
 
     // --- Validation projectId ---
@@ -235,7 +135,7 @@ export async function onRequestPost(context) {
       }
     `;
 
-    const finalDescription = imageMarkdown + `- [ ] ${description.trim()}`;
+    const finalDescription = attachmentMarkdown + `- [ ] ${description.trim()}`;
 
     const variables = {
       input: {
