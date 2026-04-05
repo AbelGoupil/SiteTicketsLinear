@@ -29,9 +29,18 @@ function cleanupOldEntries() {
   }
 }
 
+// Routes API protégées par le middleware
+const API_ROUTES = ['/create-ticket', '/list-tickets', '/get-project-config'];
+
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
+
+  // Ne filtrer que les routes API — laisser passer le reste (pages HTML, assets)
+  const isApiRoute = API_ROUTES.some(route => url.pathname === route);
+  if (!isApiRoute) {
+    return await context.next();
+  }
 
   // Nettoyage lazy à chaque requête (pas de setInterval en global scope)
   cleanupOldEntries();
@@ -60,7 +69,7 @@ export async function onRequest(context) {
     });
   }
 
-  // Bloquer les méthodes non-POST
+  // Bloquer les méthodes non-POST sur les routes API
   if (request.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Méthode non autorisée.' }),
