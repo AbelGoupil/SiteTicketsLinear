@@ -12,59 +12,47 @@
       background: #0f0f0f;
       color: #e0e0e0;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 0;
+      padding: 30px 20px;
     }
 
-    .container {
-      width: 100%;
-      max-width: 520px;
-      padding: 0 24px;
+    /* Top bar: logo + form */
+    .top-bar {
+      max-width: 600px;
+      margin: 0 auto 24px;
     }
 
-    .logo { text-align: center; margin-bottom: 32px; }
-    .logo h1 { font-size: 24px; font-weight: 700; color: #fff; }
+    .logo { text-align: center; margin-bottom: 24px; }
+    .logo h1 { font-size: 22px; font-weight: 700; color: #fff; }
     .logo span { color: #6c63ff; }
-    .logo p { color: #888; font-size: 14px; margin-top: 4px; }
+    .logo p { color: #888; font-size: 13px; margin-top: 4px; }
     .logo .project-name { color: #6c63ff; font-weight: 600; }
 
     #auth-screen {
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      padding: 32px;
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 12px; padding: 32px;
     }
 
     #ticket-screen {
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      padding: 0;
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 12px; padding: 0;
     }
-
     #ticket-screen { display: none; }
 
     label {
-      display: block; font-size: 13px; font-weight: 600;
+      display: block; font-size: 12px; font-weight: 600;
       color: #aaa; margin-bottom: 6px;
       text-transform: uppercase; letter-spacing: 0.5px;
     }
 
-    input[type="password"],
-    input[type="text"],
-    textarea,
-    select {
+    input[type="password"], input[type="text"], textarea, select {
       width: 100%; padding: 10px 14px;
       background: #111; border: 1px solid #333;
       border-radius: 8px; color: #fff;
-      font-size: 15px; font-family: inherit;
+      font-size: 14px; font-family: inherit;
       outline: none; transition: border-color 0.2s;
     }
-
     input:focus, textarea:focus, select:focus { border-color: #6c63ff; }
-    textarea { min-height: 120px; resize: vertical; }
+    textarea { min-height: 100px; resize: vertical; }
 
     select {
       cursor: pointer; appearance: none;
@@ -72,13 +60,13 @@
       background-repeat: no-repeat; background-position: right 12px center;
     }
 
-    .field { margin-bottom: 20px; }
+    .field { margin-bottom: 16px; }
 
     button {
       width: 100%; padding: 12px;
       background: #6c63ff; color: #fff;
       border: none; border-radius: 8px;
-      font-size: 15px; font-weight: 600;
+      font-size: 14px; font-weight: 600;
       cursor: pointer; transition: background 0.2s;
     }
     button:hover { background: #5a52d5; }
@@ -86,34 +74,52 @@
 
     .error {
       background: #2d1515; border: 1px solid #5c2020;
-      color: #ff6b6b; padding: 12px; border-radius: 8px;
-      font-size: 13px; margin-bottom: 16px;
+      color: #ff6b6b; padding: 10px; border-radius: 8px;
+      font-size: 13px; margin-bottom: 12px;
       display: none; word-break: break-word;
     }
 
     /* Drop zone */
     #drop-zone {
       border: 2px dashed #333; border-radius: 8px;
-      padding: 20px; text-align: center;
+      padding: 16px; text-align: center;
       cursor: pointer; transition: border-color 0.2s; position: relative;
     }
     #drop-zone:hover, #drop-zone.dragover { border-color: #6c63ff; }
     #drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-    #drop-zone p { color: #666; font-size: 14px; pointer-events: none; }
+    #drop-zone p { color: #666; font-size: 13px; pointer-events: none; }
 
     #preview-container {
-      display: none; position: relative; margin-top: 10px;
+      display: none; position: relative; margin-top: 8px;
       border-radius: 8px; overflow: hidden; border: 1px solid #333;
     }
-    #preview-img { width: 100%; max-height: 200px; object-fit: contain; background: #111; display: block; }
+    #preview-img { width: 100%; max-height: 160px; object-fit: contain; background: #111; display: block; }
     #remove-img {
-      position: absolute; top: 8px; right: 8px;
-      width: 28px; height: 28px; padding: 0;
+      position: absolute; top: 6px; right: 6px;
+      width: 24px; height: 24px; padding: 0;
       background: rgba(0,0,0,0.7); color: #ff6b6b;
-      border: none; border-radius: 50%; font-size: 14px;
+      border: none; border-radius: 50%; font-size: 12px;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
     }
-    #remove-img:hover { background: rgba(0,0,0,0.9); }
+
+    /* Collapsible form header */
+    .collapsible-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; cursor: pointer; user-select: none;
+      font-size: 15px; font-weight: 600; color: #fff;
+    }
+    .collapsible-header:hover { color: #6c63ff; }
+    .collapsible-header .header-icon { font-size: 18px; margin-right: 10px; color: #6c63ff; }
+    .collapsible-header .header-left { display: flex; align-items: center; }
+    .collapsible-arrow { font-size: 12px; color: #666; transition: transform 0.2s; }
+    .collapsible-arrow.collapsed { transform: rotate(-90deg); }
+
+    #ticket-form-body {
+      padding: 0 24px 24px; overflow: hidden; max-height: 1000px;
+      transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
+      opacity: 1;
+    }
+    #ticket-form-body.collapsed { max-height: 0; opacity: 0; padding: 0 24px; }
 
     /* Overlays */
     .overlay {
@@ -134,84 +140,97 @@
     .success-box button { background: #2d5a2d; }
     .success-box button:hover { background: #3a7a3a; }
 
-    /* Tickets section */
-    #tickets-section { display: none; margin-top: 24px; }
-
-    .status-column {
-      background: #1a1a1a; border: 1px solid #2a2a2a;
-      border-radius: 10px; margin-bottom: 12px; overflow: hidden;
+    /* ===== BOARD COLUMNS ===== */
+    #tickets-section {
+      display: none;
+      overflow-x: auto; padding-bottom: 8px;
     }
 
-    .column-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 14px 18px; cursor: pointer; user-select: none;
-      font-size: 14px; font-weight: 600; color: #fff;
+    .board {
+      display: flex; gap: 12px;
+      min-width: max-content;
     }
-    .column-header:hover { color: #6c63ff; }
-    .column-header .header-left { display: flex; align-items: center; gap: 8px; }
+
+    .board-col {
+      width: 260px; min-width: 260px;
+      background: #141414; border: 1px solid #2a2a2a;
+      border-radius: 10px; display: flex;
+      flex-direction: column; max-height: calc(100vh - 200px);
+    }
+
+    .board-col-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 14px; font-size: 13px; font-weight: 600;
+      color: #fff; border-bottom: 1px solid #2a2a2a;
+      flex-shrink: 0;
+    }
 
     .col-dot {
-      width: 10px; height: 10px; border-radius: 50%;
+      width: 9px; height: 9px; border-radius: 50%;
       display: inline-block; flex-shrink: 0;
     }
 
     .col-count {
       font-size: 11px; color: #666; font-weight: 400;
       background: #2a2a2a; padding: 1px 7px; border-radius: 10px;
-      margin-left: 4px;
+      margin-left: auto;
     }
 
-    .column-body {
-      padding: 0 12px 12px;
-      max-height: 2000px; opacity: 1;
-      transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
-      overflow: hidden;
-    }
-    .column-body.collapsed {
-      max-height: 0; opacity: 0; padding: 0 12px;
+    .board-col-body {
+      flex: 1; overflow-y: auto; padding: 8px;
+      min-height: 60px;
     }
 
-    .tickets-loading { color: #666; font-size: 14px; text-align: center; padding: 20px; }
+    .board-col-body.drag-over {
+      background: #1a1a2e; border-radius: 0 0 10px 10px;
+    }
 
+    /* Ticket card (in column) */
     .ticket-card {
       background: #1a1a1a; border: 1px solid #2a2a2a;
-      border-radius: 10px; padding: 14px 16px;
-      margin-bottom: 10px; transition: border-color 0.2s;
-      cursor: pointer; display: flex; align-items: center; gap: 12px;
+      border-radius: 8px; padding: 10px 12px;
+      margin-bottom: 8px; cursor: pointer;
+      transition: border-color 0.2s, transform 0.1s;
     }
     .ticket-card:hover { border-color: #6c63ff; }
+    .ticket-card.dragging { opacity: 0.4; transform: scale(0.95); }
+    .ticket-card[draggable="true"] { cursor: grab; }
+    .ticket-card[draggable="true"]:active { cursor: grabbing; }
+
+    .card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 
     .ticket-id {
-      font-size: 12px; color: #555; font-weight: 600;
-      font-family: monospace; flex-shrink: 0;
-    }
-
-    .ticket-title-card {
-      font-size: 14px; font-weight: 500; color: #e0e0e0;
-      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-size: 11px; color: #555; font-weight: 600;
+      font-family: monospace;
     }
 
     .ticket-label {
-      font-size: 10px; font-weight: 600; padding: 2px 8px;
-      border-radius: 4px; flex-shrink: 0; white-space: nowrap;
+      font-size: 9px; font-weight: 600; padding: 1px 6px;
+      border-radius: 3px; white-space: nowrap;
     }
 
     .ticket-priority {
-      font-size: 11px; font-weight: 600; padding: 2px 8px;
-      border-radius: 4px; text-transform: uppercase; flex-shrink: 0;
+      font-size: 9px; font-weight: 600; padding: 1px 6px;
+      border-radius: 3px; text-transform: uppercase; margin-left: auto;
     }
     .priority-0 { background: #5c1515; color: #ff6b6b; }
     .priority-1 { background: #5c3a15; color: #f2994a; }
     .priority-2 { background: #3a3a15; color: #f2c94c; }
     .priority-3 { background: #1a2e1a; color: #6fcf97; }
 
-    .no-tickets {
-      color: #555; font-size: 14px; text-align: center;
-      padding: 24px; background: #1a1a1a;
-      border: 1px solid #2a2a2a; border-radius: 10px;
+    .ticket-title-card {
+      font-size: 13px; font-weight: 500; color: #e0e0e0;
+      line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
     }
 
-    /* Ticket detail popup */
+    .no-tickets {
+      color: #444; font-size: 12px; text-align: center;
+      padding: 16px 8px;
+    }
+
+    /* Detail popup */
     .detail-box {
       background: #1a1a1a; border: 1px solid #2a2a2a;
       border-radius: 12px; padding: 0;
@@ -231,114 +250,49 @@
     .detail-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
     .detail-header { padding: 24px 24px 0; }
-
-    .detail-id {
-      font-size: 12px; color: #555; font-family: monospace;
-      font-weight: 600; margin-bottom: 8px;
-    }
-
-    .detail-title {
-      font-size: 20px; font-weight: 700; color: #fff;
-      margin-bottom: 4px; padding-right: 40px;
-    }
-
+    .detail-id { font-size: 12px; color: #555; font-family: monospace; font-weight: 600; margin-bottom: 8px; }
+    .detail-title { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; padding-right: 40px; }
     .detail-priority-badge {
       display: inline-block; font-size: 11px; font-weight: 600;
       padding: 3px 10px; border-radius: 4px;
       text-transform: uppercase; margin-top: 8px;
     }
 
-    .detail-image {
-      margin: 20px 24px 0; border-radius: 8px; overflow: hidden;
-      border: 1px solid #2a2a2a;
-    }
+    .detail-image { margin: 20px 24px 0; border-radius: 8px; overflow: hidden; border: 1px solid #2a2a2a; }
     .detail-image img { width: 100%; display: block; background: #111; }
 
     .detail-body { padding: 20px 24px 24px; }
-
-    .detail-description {
-      font-size: 15px; color: #ccc; line-height: 1.6;
-      white-space: pre-wrap;
-    }
-
+    .detail-description { font-size: 15px; color: #ccc; line-height: 1.6; white-space: pre-wrap; }
     .detail-checkbox-list { list-style: none; padding: 0; margin: 0; }
-
     .detail-checkbox-item {
       display: flex; align-items: flex-start; gap: 10px;
       padding: 8px 0; font-size: 15px; color: #ccc; line-height: 1.5;
     }
-
     .detail-checkbox-item input[type="checkbox"] {
       margin-top: 4px; width: 18px; height: 18px;
       accent-color: #6c63ff; flex-shrink: 0;
       cursor: default; pointer-events: none;
     }
+    .detail-checkbox-item.checked span { text-decoration: line-through; color: #666; }
 
-    .detail-checkbox-item.checked span {
-      text-decoration: line-through; color: #666;
-    }
-
-    /* Collapsible form */
-    .collapsible-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 18px 24px; cursor: pointer; user-select: none;
-      font-size: 15px; font-weight: 600; color: #fff;
-      border-bottom: 1px solid transparent;
-      transition: border-color 0.2s;
-    }
-    .collapsible-header.collapsed-header {
-      border-bottom: none;
-    }
-    .collapsible-header:hover { color: #6c63ff; }
-    .collapsible-header .header-icon {
-      font-size: 18px; margin-right: 10px; color: #6c63ff;
-    }
-    .collapsible-header .header-left { display: flex; align-items: center; }
-    .collapsible-arrow {
-      font-size: 12px; color: #666; transition: transform 0.2s;
-    }
-    .collapsible-arrow.collapsed { transform: rotate(-90deg); }
-
-    #ticket-form-body {
-      padding: 0 32px 32px;
-      overflow: hidden; max-height: 1000px;
-      transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
-      opacity: 1;
-    }
-    #ticket-form-body.collapsed {
-      max-height: 0; opacity: 0; padding: 0 32px;
-    }
-
-    /* Landing page (no project selected) */
+    /* Landing page */
     .landing {
       background: #1a1a1a; border: 1px solid #2a2a2a;
-      border-radius: 12px; padding: 40px 32px;
-      text-align: center;
+      border-radius: 12px; padding: 40px 32px; text-align: center;
     }
-
-    .landing h2 {
-      font-size: 18px; color: #fff; margin-bottom: 12px;
-    }
-
-    .landing p {
-      color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 8px;
-    }
-
-    .landing code {
-      background: #111; padding: 2px 8px; border-radius: 4px;
-      font-size: 13px; color: #6c63ff;
-    }
+    .landing h2 { font-size: 18px; color: #fff; margin-bottom: 12px; }
+    .landing p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 8px; }
+    .landing code { background: #111; padding: 2px 8px; border-radius: 4px; font-size: 13px; color: #6c63ff; }
   </style>
 </head>
 <body>
 
-  <div class="container">
+  <div class="top-bar">
     <div class="logo">
       <h1><span>Riviera Flow</span> — Tickets</h1>
       <p id="subtitle">Créer un ticket pour l'équipe dev</p>
     </div>
 
-    <!-- Landing : aucun projet sélectionné -->
     <div id="landing-screen" style="display:none">
       <div class="landing">
         <h2>Aucun projet sélectionné</h2>
@@ -347,7 +301,6 @@
       </div>
     </div>
 
-    <!-- Auth -->
     <div id="auth-screen" style="display:none">
       <div class="error" id="auth-error"></div>
       <div class="field">
@@ -357,102 +310,57 @@
       <button id="auth-btn" onclick="authenticate()">Accéder</button>
     </div>
 
-    <!-- Formulaire ticket -->
     <div id="ticket-screen" style="display:none">
       <div class="collapsible-header collapsed-header" id="form-header" onclick="toggleForm()">
         <span class="header-left"><span class="header-icon">+</span> Créer un ticket</span>
         <span class="collapsible-arrow collapsed" id="form-arrow">&#9660;</span>
       </div>
       <div id="ticket-form-body" class="collapsed">
-      <div class="error" id="ticket-error"></div>
-
-      <div class="field">
-        <label for="title">Titre</label>
-        <input type="text" id="title" placeholder="Ex: [User] ou [Pro] - Le bouton login ne répond pas" maxlength="200">
-      </div>
-
-      <div class="field">
-        <label for="screenshot">Capture d'écran (obligatoire si c'est un bug)</label>
-        <div id="drop-zone">
-          <input type="file" id="screenshot" accept="image/*" onchange="handleFile(this)">
-          <p>Cliquez ou glissez une image ici</p>
+        <div class="error" id="ticket-error"></div>
+        <div class="field">
+          <label for="title">Titre</label>
+          <input type="text" id="title" placeholder="Ex: [User] ou [Pro] - Le bouton login ne répond pas" maxlength="200">
         </div>
-        <div id="preview-container">
-          <img id="preview-img" src="" alt="Aperçu">
-          <button type="button" id="remove-img" onclick="removeImage()">&#10005;</button>
+        <div class="field">
+          <label for="screenshot">Capture d'écran (obligatoire si c'est un bug)</label>
+          <div id="drop-zone">
+            <input type="file" id="screenshot" accept="image/*" onchange="handleFile(this)">
+            <p>Cliquez ou glissez une image ici</p>
+          </div>
+          <div id="preview-container">
+            <img id="preview-img" src="" alt="Aperçu">
+            <button type="button" id="remove-img" onclick="removeImage()">&#10005;</button>
+          </div>
         </div>
-      </div>
-
-      <div class="field">
-        <label for="description">Description</label>
-        <textarea id="description" placeholder="Décrivez le bug ou la feature en détail et décrire comment reproduire le bug si c'en est un..." maxlength="5000"></textarea>
-      </div>
-
-      <div class="field">
-        <label for="ticket-type">Type</label>
-        <select id="ticket-type">
-          <option value="bug">Bug</option>
-          <option value="amelioration">Amélioration</option>
-          <option value="idee">Idée pour plus tard</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label for="priority">Priorité</label>
-        <select id="priority">
-          <option value="3">Low</option>
-          <option value="2" selected>Medium</option>
-          <option value="1">High</option>
-          <option value="0">Urgent</option>
-        </select>
-      </div>
-
-      <button id="submit-btn" onclick="createTicket()">Créer le ticket</button>
+        <div class="field">
+          <label for="description">Description</label>
+          <textarea id="description" placeholder="Décrivez le bug ou la feature en détail et décrire comment reproduire le bug si c'en est un..." maxlength="5000"></textarea>
+        </div>
+        <div class="field">
+          <label for="ticket-type">Type</label>
+          <select id="ticket-type">
+            <option value="bug">Bug</option>
+            <option value="amelioration">Amélioration</option>
+            <option value="idee">Idée pour plus tard</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="priority">Priorité</label>
+          <select id="priority">
+            <option value="3">Low</option>
+            <option value="2" selected>Medium</option>
+            <option value="1">High</option>
+            <option value="0">Urgent</option>
+          </select>
+        </div>
+        <button id="submit-btn" onclick="createTicket()">Créer le ticket</button>
       </div>
     </div>
+  </div>
 
-    <!-- Tickets par statut -->
-    <div id="tickets-section" style="display:none">
-      <div class="status-column" id="col-backlog">
-        <div class="column-header" onclick="toggleColumn('backlog')">
-          <span class="header-left"><span class="col-dot" style="background:#f2994a"></span> Backlog <span class="col-count" id="count-backlog">0</span></span>
-          <span class="collapsible-arrow" id="arrow-backlog">&#9660;</span>
-        </div>
-        <div class="column-body" id="body-backlog"></div>
-      </div>
-
-      <div class="status-column" id="col-next">
-        <div class="column-header" onclick="toggleColumn('next')">
-          <span class="header-left"><span class="col-dot" style="background:#6c63ff"></span> Voulu en prochaine version <span class="col-count" id="count-next">0</span></span>
-          <span class="collapsible-arrow" id="arrow-next">&#9660;</span>
-        </div>
-        <div class="column-body" id="body-next"></div>
-      </div>
-
-      <div class="status-column" id="col-dev">
-        <div class="column-header" onclick="toggleColumn('dev')">
-          <span class="header-left"><span class="col-dot" style="background:#f2c94c"></span> En cours de code <span class="col-count" id="count-dev">0</span></span>
-          <span class="collapsible-arrow" id="arrow-dev">&#9660;</span>
-        </div>
-        <div class="column-body" id="body-dev"></div>
-      </div>
-
-      <div class="status-column" id="col-qa">
-        <div class="column-header" onclick="toggleColumn('qa')">
-          <span class="header-left"><span class="col-dot" style="background:#BB87FC"></span> En cours de qualif <span class="col-count" id="count-qa">0</span></span>
-          <span class="collapsible-arrow" id="arrow-qa">&#9660;</span>
-        </div>
-        <div class="column-body" id="body-qa"></div>
-      </div>
-
-      <div class="status-column" id="col-done">
-        <div class="column-header" onclick="toggleColumn('done')">
-          <span class="header-left"><span class="col-dot" style="background:#4ade80"></span> Livré <span class="col-count" id="count-done">0</span></span>
-          <span class="collapsible-arrow collapsed" id="arrow-done">&#9660;</span>
-        </div>
-        <div class="column-body collapsed" id="body-done"></div>
-      </div>
-    </div>
+  <!-- Board -->
+  <div id="tickets-section">
+    <div class="board" id="board"></div>
   </div>
 
   <!-- Success popup -->
@@ -465,7 +373,7 @@
     </div>
   </div>
 
-  <!-- Ticket detail popup -->
+  <!-- Detail popup -->
   <div class="overlay" id="detail-overlay" onclick="closeDetail(event)">
     <div class="detail-box" id="detail-box">
       <button class="detail-close" onclick="closeDetailDirect()">&#10005;</button>
@@ -485,28 +393,42 @@
 
   <script>
     // --- State ---
-    let authedPassword = null;
-    let screenshotBase64 = null;
-    let screenshotFilename = null;
-    let screenshotContentType = null;
-    let ticketsData = [];
-    let currentProject = null; // { slug, name, projectId }
+    var authedPassword = null;
+    var screenshotBase64 = null;
+    var screenshotFilename = null;
+    var screenshotContentType = null;
+    var ticketsData = [];
+    var currentProject = null;
 
-    const PRIORITY_LABELS = { 0: 'Urgent', 1: 'High', 2: 'Medium', 3: 'Low', 4: 'None' };
-    const TYPE_LABEL_NAMES = ['Bug', 'Improvement', 'Idée pour plus tard'];
+    var PRIORITY_LABELS = { 0: 'Urgent', 1: 'High', 2: 'Medium', 3: 'Low', 4: 'None' };
+    var TYPE_LABEL_NAMES = ['Bug', 'Improvement', 'Idée pour plus tard'];
+    var MAX_TITLE_LENGTH = 200;
+    var MAX_DESCRIPTION_LENGTH = 5000;
+    var MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
-    // Mapping statuts Linear → colonnes
+    // Columns config
+    var COLUMNS = [
+      { key: 'backlog', name: 'Backlog', color: '#f2994a', droppable: true },
+      { key: 'next', name: 'Voulu en prochaine version', color: '#6c63ff', droppable: true },
+      { key: 'dev', name: 'En cours de code', color: '#f2c94c', droppable: false },
+      { key: 'qa', name: 'En cours de qualif', color: '#BB87FC', droppable: false },
+      { key: 'done', name: 'Livré', color: '#4ade80', droppable: false },
+    ];
+
+    // Mapping Linear status → column key
     var STATUS_TO_COLUMN = {
-      'Triage': 'backlog',
-      'Shaping': 'backlog',
-      'To Estimate': 'backlog',
-      'Todo': 'backlog',
-      'Later': 'next',
-      'In Dev': 'dev',
-      'In Design': 'dev',
-      'In Review': 'qa',
-      'Reviewed and Pending': 'qa',
+      'Triage': 'backlog', 'Shaping': 'backlog', 'To Estimate': 'backlog',
+      'Todo': 'backlog', 'Later': 'backlog',
+      'Next version': 'next',
+      'In Dev': 'dev', 'In Design': 'dev',
+      'In Review': 'qa', 'Reviewed and Pending': 'qa',
       'Deployed': 'done',
+    };
+
+    // Mapping column key → Linear state ID (for drag & drop)
+    var COLUMN_TO_STATE = {
+      'backlog': 'e27cf1cb-4c2c-47d1-848b-5205c8dbe4fb',
+      'next': '446dc244-5df8-4e48-90b2-c75401b62d08',
     };
 
     function getTypeLabelHtml(ticket) {
@@ -520,71 +442,53 @@
       }
       return '';
     }
-    const MAX_TITLE_LENGTH = 200;
-    const MAX_DESCRIPTION_LENGTH = 5000;
-    const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
-    // --- Routing : lire le slug depuis l'URL ---
+    // --- Routing ---
     async function init() {
-      const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
-
+      var path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
       if (!path) {
-        // Page racine : afficher le message
         document.getElementById('landing-screen').style.display = 'block';
         document.getElementById('subtitle').textContent = 'Portail de tickets client';
         return;
       }
-
-      // Résoudre le slug via l'API
       try {
-        const res = await fetch('/get-project-config', {
+        var res = await fetch('/get-project-config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ slug: path })
         });
-        const contentType = res.headers.get('content-type') || '';
-        if (!contentType.includes('application/json')) {
-          throw new Error('Les fonctions API ne sont pas disponibles. Vérifiez le déploiement Cloudflare.');
-        }
-        const data = await res.json();
-
+        var ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) throw new Error('API non disponible.');
+        var data = await res.json();
         if (!res.ok) {
           document.getElementById('landing-screen').style.display = 'block';
           document.getElementById('subtitle').textContent = 'Portail de tickets client';
-          const landingEl = document.querySelector('.landing');
-          landingEl.innerHTML = `
-            <h2>Projet introuvable</h2>
-            <p>Le projet <code>${escapeHtml(path)}</code> n'existe pas.</p>
-            <p>Vérifiez l'URL et réessayez.</p>
-          `;
+          document.querySelector('.landing').innerHTML =
+            '<h2>Projet introuvable</h2><p>Le projet <code>' + escapeHtml(path) + '</code> n\'existe pas.</p>';
           return;
         }
-
         currentProject = data.project;
-        document.title = `${currentProject.name} — Tickets`;
+        document.title = currentProject.name + ' — Tickets';
         document.getElementById('subtitle').innerHTML =
-          `Créer un ticket pour <span class="project-name">${escapeHtml(currentProject.name)}</span>`;
+          'Créer un ticket pour <span class="project-name">' + escapeHtml(currentProject.name) + '</span>';
         document.getElementById('auth-screen').style.display = 'block';
-
       } catch (err) {
         document.getElementById('landing-screen').style.display = 'block';
-        document.querySelector('.landing').innerHTML = `
-          <h2>Erreur</h2>
-          <p style="color:#ff6b6b">${escapeHtml(err.message)}</p>
-        `;
+        document.querySelector('.landing').innerHTML =
+          '<h2>Erreur</h2><p style="color:#ff6b6b">' + escapeHtml(err.message) + '</p>';
       }
     }
 
     // --- Image upload ---
     function handleFile(input) {
-      const file = input.files[0];
+      var file = input.files[0];
       if (!file) return;
       if (!file.type.startsWith('image/')) { alert('Seules les images sont acceptées.'); return; }
-      if (file.size > MAX_IMAGE_SIZE) { alert(`Image trop volumineuse (${(file.size / 1024 / 1024).toFixed(1)}MB). Max : 5MB.`); return; }
+      if (file.size > MAX_IMAGE_SIZE) { alert('Image trop volumineuse. Max : 5MB.'); return; }
       screenshotFilename = file.name;
       screenshotContentType = file.type;
-      const reader = new FileReader();
-      reader.onload = (e) => {
+      var reader = new FileReader();
+      reader.onload = function(e) {
         screenshotBase64 = e.target.result.split(',')[1];
         document.getElementById('preview-img').src = e.target.result;
         document.getElementById('preview-container').style.display = 'block';
@@ -600,85 +504,83 @@
       document.getElementById('drop-zone').style.display = 'block';
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const dz = document.getElementById('drop-zone');
-      dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
-      dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-      dz.addEventListener('drop', (e) => {
+    document.addEventListener('DOMContentLoaded', function() {
+      var dz = document.getElementById('drop-zone');
+      dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('dragover'); });
+      dz.addEventListener('dragleave', function() { dz.classList.remove('dragover'); });
+      dz.addEventListener('drop', function(e) {
         e.preventDefault(); dz.classList.remove('dragover');
-        const file = e.dataTransfer.files[0];
+        var file = e.dataTransfer.files[0];
         if (file) {
-          const input = document.getElementById('screenshot');
-          const dt = new DataTransfer();
+          var input = document.getElementById('screenshot');
+          var dt = new DataTransfer();
           dt.items.add(file);
           input.files = dt.files;
           handleFile(input);
         }
       });
-
-      // Init routing
       init();
     });
 
     // --- Auth ---
-    document.getElementById('password').addEventListener('keydown', (e) => {
+    document.getElementById('password').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') authenticate();
     });
 
     function authenticate() {
-      const pwd = document.getElementById('password').value.trim();
-      const errEl = document.getElementById('auth-error');
+      var pwd = document.getElementById('password').value.trim();
+      var errEl = document.getElementById('auth-error');
       if (!pwd) { errEl.textContent = 'Veuillez entrer le mot de passe.'; errEl.style.display = 'block'; return; }
       authedPassword = pwd;
       errEl.style.display = 'none';
       document.getElementById('auth-screen').style.display = 'none';
       document.getElementById('ticket-screen').style.display = 'block';
       document.getElementById('tickets-section').style.display = 'block';
-      document.getElementById('title').focus();
+      buildBoard();
       loadTickets();
+    }
+
+    // --- Form toggle ---
+    function toggleForm() {
+      var body = document.getElementById('ticket-form-body');
+      var arrow = document.getElementById('form-arrow');
+      var header = document.getElementById('form-header');
+      body.classList.toggle('collapsed');
+      arrow.classList.toggle('collapsed');
+      header.classList.toggle('collapsed-header');
     }
 
     // --- Create ticket ---
     async function createTicket() {
-      const title = document.getElementById('title').value.trim();
-      const description = document.getElementById('description').value.trim();
-      const priority = document.getElementById('priority').value;
-      const ticketType = document.getElementById('ticket-type').value;
-      const errEl = document.getElementById('ticket-error');
-      const btn = document.getElementById('submit-btn');
+      var title = document.getElementById('title').value.trim();
+      var description = document.getElementById('description').value.trim();
+      var priority = document.getElementById('priority').value;
+      var ticketType = document.getElementById('ticket-type').value;
+      var errEl = document.getElementById('ticket-error');
+      var btn = document.getElementById('submit-btn');
 
-      if (!title || !description) {
-        errEl.textContent = 'Titre et description sont obligatoires.';
-        errEl.style.display = 'block'; return;
-      }
-      if (title.length > MAX_TITLE_LENGTH) {
-        errEl.textContent = `Le titre ne doit pas dépasser ${MAX_TITLE_LENGTH} caractères (${title.length}/${MAX_TITLE_LENGTH}).`;
-        errEl.style.display = 'block'; return;
-      }
-      if (description.length > MAX_DESCRIPTION_LENGTH) {
-        errEl.textContent = `La description ne doit pas dépasser ${MAX_DESCRIPTION_LENGTH} caractères (${description.length}/${MAX_DESCRIPTION_LENGTH}).`;
-        errEl.style.display = 'block'; return;
-      }
+      if (!title || !description) { errEl.textContent = 'Titre et description sont obligatoires.'; errEl.style.display = 'block'; return; }
+      if (title.length > MAX_TITLE_LENGTH) { errEl.textContent = 'Titre trop long.'; errEl.style.display = 'block'; return; }
+      if (description.length > MAX_DESCRIPTION_LENGTH) { errEl.textContent = 'Description trop longue.'; errEl.style.display = 'block'; return; }
 
       errEl.style.display = 'none'; btn.disabled = true; btn.textContent = 'Création en cours...';
 
       try {
-        const res = await fetch('/create-ticket', {
+        var res = await fetch('/create-ticket', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            password: authedPassword, title, description,
-            priority: parseInt(priority),
-            ticketType: ticketType,
+            password: authedPassword, title: title, description: description,
+            priority: parseInt(priority), ticketType: ticketType,
             projectId: currentProject.projectId,
             screenshot: screenshotBase64 ? { base64: screenshotBase64, filename: screenshotFilename, contentType: screenshotContentType } : null
           })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `Erreur HTTP ${res.status}`);
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur HTTP ' + res.status);
         document.getElementById('success-overlay').classList.add('visible');
       } catch (err) {
-        errEl.textContent = `Erreur : ${err.message}`; errEl.style.display = 'block';
+        errEl.textContent = 'Erreur : ' + err.message; errEl.style.display = 'block';
       } finally {
         btn.disabled = false; btn.textContent = 'Créer le ticket';
       }
@@ -691,42 +593,82 @@
       document.getElementById('priority').value = '2';
       document.getElementById('ticket-type').value = 'bug';
       removeImage();
-      document.getElementById('title').focus();
       loadTickets();
+    }
+
+    // --- Build board columns ---
+    function buildBoard() {
+      var boardEl = document.getElementById('board');
+      var html = '';
+      for (var c = 0; c < COLUMNS.length; c++) {
+        var col = COLUMNS[c];
+        html += '<div class="board-col" id="col-' + col.key + '">' +
+          '<div class="board-col-header">' +
+            '<span class="col-dot" style="background:' + col.color + '"></span> ' +
+            col.name +
+            ' <span class="col-count" id="count-' + col.key + '">0</span>' +
+          '</div>' +
+          '<div class="board-col-body" id="body-' + col.key + '" data-col="' + col.key + '"></div>' +
+        '</div>';
+      }
+      boardEl.innerHTML = html;
+
+      // Setup drop zones for backlog and next
+      ['backlog', 'next'].forEach(function(colKey) {
+        var bodyEl = document.getElementById('body-' + colKey);
+        bodyEl.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          bodyEl.classList.add('drag-over');
+        });
+        bodyEl.addEventListener('dragleave', function(e) {
+          bodyEl.classList.remove('drag-over');
+        });
+        bodyEl.addEventListener('drop', function(e) {
+          e.preventDefault();
+          bodyEl.classList.remove('drag-over');
+          var ticketIndex = e.dataTransfer.getData('text/plain');
+          if (ticketIndex === '') return;
+          moveTicket(parseInt(ticketIndex), colKey);
+        });
+      });
     }
 
     // --- Load tickets ---
     async function loadTickets() {
-      var columns = ['backlog', 'next', 'dev', 'qa', 'done'];
-      for (var c = 0; c < columns.length; c++) {
-        document.getElementById('body-' + columns[c]).innerHTML = '<div class="tickets-loading">Chargement...</div>';
+      for (var c = 0; c < COLUMNS.length; c++) {
+        document.getElementById('body-' + COLUMNS[c].key).innerHTML =
+          '<div class="no-tickets">Chargement...</div>';
       }
 
       try {
-        const res = await fetch('/list-tickets', {
+        var res = await fetch('/list-tickets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: authedPassword, projectId: currentProject.projectId })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `Erreur HTTP ${res.status}`);
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur HTTP ' + res.status);
 
         ticketsData = data.tickets || [];
 
-        // Grouper par colonne
-        var grouped = { backlog: [], next: [], dev: [], qa: [], done: [] };
+        var grouped = {};
+        for (var c = 0; c < COLUMNS.length; c++) grouped[COLUMNS[c].key] = [];
+
         for (var i = 0; i < ticketsData.length; i++) {
           var t = ticketsData[i];
           var stateName = (t.state && t.state.name) ? t.state.name : '';
           var col = STATUS_TO_COLUMN[stateName] || 'backlog';
+          if (!grouped[col]) col = 'backlog';
           grouped[col].push({ ticket: t, globalIndex: i });
         }
 
-        for (var c = 0; c < columns.length; c++) {
-          var colKey = columns[c];
+        for (var c = 0; c < COLUMNS.length; c++) {
+          var colKey = COLUMNS[c].key;
           var bodyEl = document.getElementById('body-' + colKey);
           var countEl = document.getElementById('count-' + colKey);
           var items = grouped[colKey];
+          var isDraggable = (colKey === 'backlog' || colKey === 'next');
 
           countEl.textContent = items.length;
 
@@ -735,40 +677,83 @@
           } else {
             bodyEl.innerHTML = items.map(function(item) {
               var t = item.ticket;
-              return '<div class="ticket-card" onclick="openDetail(' + item.globalIndex + ')">' +
-                '<span class="ticket-id">' + escapeHtml(t.identifier) + '</span>' +
-                '<span class="ticket-title-card">' + escapeHtml(t.title) + '</span>' +
-                getTypeLabelHtml(t) +
-                '<span class="ticket-priority priority-' + t.priority + '">' + (PRIORITY_LABELS[t.priority] || '?') + '</span>' +
-                '</div>';
+              var dragAttr = isDraggable ? ' draggable="true" ondragstart="onDragStart(event, ' + item.globalIndex + ')" ondragend="onDragEnd(event)"' : '';
+              return '<div class="ticket-card"' + dragAttr + ' onclick="openDetail(' + item.globalIndex + ')">' +
+                '<div class="card-top">' +
+                  '<span class="ticket-id">' + escapeHtml(t.identifier) + '</span>' +
+                  getTypeLabelHtml(t) +
+                  '<span class="ticket-priority priority-' + t.priority + '">' + (PRIORITY_LABELS[t.priority] || '?') + '</span>' +
+                '</div>' +
+                '<div class="ticket-title-card">' + escapeHtml(t.title) + '</div>' +
+              '</div>';
             }).join('');
           }
         }
-
       } catch (err) {
-        for (var c = 0; c < columns.length; c++) {
-          document.getElementById('body-' + columns[c]).innerHTML = '<div class="no-tickets" style="color:#ff6b6b">Erreur : ' + escapeHtml(err.message) + '</div>';
+        for (var c = 0; c < COLUMNS.length; c++) {
+          document.getElementById('body-' + COLUMNS[c].key).innerHTML =
+            '<div class="no-tickets" style="color:#ff6b6b">Erreur : ' + escapeHtml(err.message) + '</div>';
         }
+      }
+    }
+
+    // --- Drag & Drop ---
+    function onDragStart(e, index) {
+      e.dataTransfer.setData('text/plain', String(index));
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(function() { e.target.classList.add('dragging'); }, 0);
+    }
+
+    function onDragEnd(e) {
+      e.target.classList.remove('dragging');
+    }
+
+    async function moveTicket(ticketIndex, targetCol) {
+      var ticket = ticketsData[ticketIndex];
+      if (!ticket) return;
+
+      var currentState = (ticket.state && ticket.state.name) ? ticket.state.name : '';
+      var currentCol = STATUS_TO_COLUMN[currentState] || 'backlog';
+      if (currentCol === targetCol) return;
+
+      var newStateId = COLUMN_TO_STATE[targetCol];
+      if (!newStateId) return;
+
+      try {
+        var res = await fetch('/update-ticket-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            password: authedPassword,
+            issueId: ticket.id,
+            stateId: newStateId
+          })
+        });
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur');
+        loadTickets();
+      } catch (err) {
+        alert('Erreur : ' + err.message);
       }
     }
 
     // --- Detail popup ---
     function openDetail(index) {
-      const t = ticketsData[index];
+      var t = ticketsData[index];
       if (!t) return;
 
       document.getElementById('detail-id').textContent = t.identifier;
       document.getElementById('detail-title').textContent = t.title;
 
-      const prioEl = document.getElementById('detail-priority');
+      var prioEl = document.getElementById('detail-priority');
       prioEl.textContent = PRIORITY_LABELS[t.priority] || '?';
       prioEl.className = 'detail-priority-badge priority-' + t.priority;
 
-      const desc = t.description || '';
-      const parsed = parseDescription(desc);
+      var desc = t.description || '';
+      var parsed = parseDescription(desc);
 
-      const imgContainer = document.getElementById('detail-image-container');
-      const imgEl = document.getElementById('detail-image');
+      var imgContainer = document.getElementById('detail-image-container');
+      var imgEl = document.getElementById('detail-image');
       if (parsed.imageUrl) {
         imgEl.src = parsed.imageUrl;
         imgContainer.style.display = 'block';
@@ -777,23 +762,23 @@
         imgEl.src = '';
       }
 
-      const contentEl = document.getElementById('detail-content');
-      let html = '';
+      var contentEl = document.getElementById('detail-content');
+      var html = '';
 
       if (parsed.checkboxes.length > 0) {
         html += '<ul class="detail-checkbox-list">';
-        parsed.checkboxes.forEach(cb => {
-          const checkedClass = cb.checked ? ' checked' : '';
-          html += `<li class="detail-checkbox-item${checkedClass}">
-            <input type="checkbox" ${cb.checked ? 'checked' : ''} tabindex="-1">
-            <span>${escapeHtml(cb.text)}</span>
-          </li>`;
-        });
+        for (var i = 0; i < parsed.checkboxes.length; i++) {
+          var cb = parsed.checkboxes[i];
+          var checkedClass = cb.checked ? ' checked' : '';
+          html += '<li class="detail-checkbox-item' + checkedClass + '">' +
+            '<input type="checkbox" ' + (cb.checked ? 'checked' : '') + ' tabindex="-1">' +
+            '<span>' + escapeHtml(cb.text) + '</span></li>';
+        }
         html += '</ul>';
       }
 
       if (parsed.text) {
-        html += `<div class="detail-description">${escapeHtml(parsed.text)}</div>`;
+        html += '<div class="detail-description">' + escapeHtml(parsed.text) + '</div>';
       }
 
       contentEl.innerHTML = html;
@@ -801,26 +786,27 @@
     }
 
     function parseDescription(desc) {
-      let imageUrl = null;
-      let checkboxes = [];
-      let textLines = [];
+      var imageUrl = null;
+      var checkboxes = [];
+      var textLines = [];
 
-      const lines = desc.split('\n');
-      for (const line of lines) {
-        const imgMatch = line.match(/^!\[.*?\]\((.*?)\)$/);
+      var lines = desc.split('\n');
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        var imgMatch = line.match(/^!\[.*?\]\((.*?)\)$/);
         if (imgMatch) { imageUrl = imgMatch[1]; continue; }
 
-        const cbChecked = line.match(/^- \[x\] (.+)$/i);
+        var cbChecked = line.match(/^- \[x\] (.+)$/i);
         if (cbChecked) { checkboxes.push({ checked: true, text: cbChecked[1] }); continue; }
 
-        const cbUnchecked = line.match(/^- \[ \] (.+)$/);
+        var cbUnchecked = line.match(/^- \[ \] (.+)$/);
         if (cbUnchecked) { checkboxes.push({ checked: false, text: cbUnchecked[1] }); continue; }
 
         if (!imageUrl && line.trim() === '') continue;
         if (line.trim() !== '') textLines.push(line);
       }
 
-      return { imageUrl, checkboxes, text: textLines.join('\n').trim() };
+      return { imageUrl: imageUrl, checkboxes: checkboxes, text: textLines.join('\n').trim() };
     }
 
     function closeDetail(event) {
@@ -832,24 +818,8 @@
       document.getElementById('detail-overlay').classList.remove('visible');
     }
 
-    function toggleColumn(colKey) {
-      var body = document.getElementById('body-' + colKey);
-      var arrow = document.getElementById('arrow-' + colKey);
-      body.classList.toggle('collapsed');
-      arrow.classList.toggle('collapsed');
-    }
-
-    function toggleForm() {
-      var body = document.getElementById('ticket-form-body');
-      var arrow = document.getElementById('form-arrow');
-      var header = document.getElementById('form-header');
-      body.classList.toggle('collapsed');
-      arrow.classList.toggle('collapsed');
-      header.classList.toggle('collapsed-header');
-    }
-
     function escapeHtml(str) {
-      const d = document.createElement('div');
+      var d = document.createElement('div');
       d.textContent = str;
       return d.innerHTML;
     }

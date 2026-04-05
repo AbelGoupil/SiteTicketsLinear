@@ -30,7 +30,7 @@ function cleanupOldEntries() {
 }
 
 // Routes API protégées par le middleware
-const API_ROUTES = ['/create-ticket', '/list-tickets', '/get-project-config'];
+const API_ROUTES = ['/create-ticket', '/list-tickets', '/get-project-config', '/update-ticket-status'];
 
 export async function onRequest(context) {
   const { request, env } = context;
