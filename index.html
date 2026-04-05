@@ -370,7 +370,7 @@
                           </select>
             <input type="text" id="title" placeholder="Le bouton login ne répond pas sur la page d'accueil" maxlength="200" style="flex:1;min-width:0;" oninput="titleWarningShown=false;">
           </div>
-          <div style="font-size:11px;color:#555;margin-top:4px;">Le titre sera au format : Section: Description claire du problème</div>
+          <div style="font-size:11px;color:#555;margin-top:4px;">Le titre sera au format : [Section] - Description claire du problème</div>
         </div>
         <div class="field">
           <label for="screenshot">Capture d'écran ou vidéo (obligatoire si c'est un bug)</label>
@@ -708,7 +708,7 @@
       if (!description) { errEl.innerText = 'La description est obligatoire.'; errEl.style.display = 'block'; return; }
 
       // Construire le titre final avec la section
-      var title = section + ': ' + titleInput.charAt(0).toUpperCase() + titleInput.slice(1);
+      var title = '[' + section + '] - ' + titleInput.charAt(0).toUpperCase() + titleInput.slice(1);
       if (title.length > MAX_TITLE_LENGTH) { errEl.textContent = 'Titre trop long.'; errEl.style.display = 'block'; return; }
       if (description.length > MAX_DESCRIPTION_LENGTH) { errEl.textContent = 'Description trop longue.'; errEl.style.display = 'block'; return; }
 
@@ -1064,7 +1064,7 @@
       }
 
       // Pré-remplir les champs — parser section depuis le titre existant
-      var titleParts = (t.title || '').match(/^(User|Pro|Website|App)\s*:\s*(.*)$/i);
+      var titleParts = (t.title || '').match(/^\[?(User|Pro|Website)\]?\s*[-:]\s*(.*)$/i);
       if (titleParts) {
         document.getElementById('edit-title-section').value = titleParts[1];
         document.getElementById('edit-title').value = titleParts[2];
@@ -1156,7 +1156,7 @@
       }
       editTitleWarningShown = false;
       if (!description) { errEl.innerText = 'La description est obligatoire.'; errEl.style.display = 'block'; return; }
-      var title = editSection + ': ' + editTitleInput.charAt(0).toUpperCase() + editTitleInput.slice(1);
+      var title = '[' + editSection + '] - ' + editTitleInput.charAt(0).toUpperCase() + editTitleInput.slice(1);
 
       errEl.style.display = 'none';
       btn.disabled = true;
@@ -1213,6 +1213,6 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.9</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.10</div>
 </body>
 </html>
