@@ -93,7 +93,7 @@
       display: none; position: relative; margin-top: 8px;
       border-radius: 8px; overflow: hidden; border: 1px solid #333;
     }
-    #preview-img { width: 100%; max-height: 160px; object-fit: contain; background: #111; display: block; }
+    #preview-img, #preview-video { width: 100%; max-height: 160px; object-fit: contain; background: #111; display: block; }
     #remove-img {
       position: absolute; top: 6px; right: 6px;
       width: 24px; height: 24px; padding: 0;
@@ -328,14 +328,15 @@
           <input type="text" id="title" placeholder="Ex: [User] ou [Pro] - Le bouton login ne répond pas" maxlength="200">
         </div>
         <div class="field">
-          <label for="screenshot">Capture d'écran (obligatoire si c'est un bug)</label>
+          <label for="screenshot">Capture d'écran ou vidéo (obligatoire si c'est un bug)</label>
           <div id="drop-zone">
-            <input type="file" id="screenshot" accept="image/*" onchange="handleFile(this)">
-            <p>Cliquez ou glissez une image ici</p>
+            <input type="file" id="screenshot" onchange="handleFile(this)">
+            <p>Cliquez ou glissez une image / vidéo ici</p>
           </div>
           <div id="preview-container">
             <img id="preview-img" src="" alt="Aperçu">
-            <button type="button" id="remove-img" onclick="removeImage()">&#10005;</button>
+            <video id="preview-video" src="" controls style="display:none"></video>
+            <button type="button" id="remove-img" onclick="removeFile()">&#10005;</button>
           </div>
         </div>
         <div class="field">
@@ -400,9 +401,7 @@
   <script>
     // --- State ---
     var authedPassword = null;
-    var screenshotBase64 = null;
-    var screenshotFilename = null;
-    var screenshotContentType = null;
+    var selectedFile = null; // Le fichier brut (File object)
     var ticketsData = [];
     var currentProject = null;
 
@@ -410,7 +409,7 @@
     var TYPE_LABEL_NAMES = ['Bug', 'Improvement', 'Idée pour plus tard'];
     var MAX_TITLE_LENGTH = 200;
     var MAX_DESCRIPTION_LENGTH = 5000;
-    var MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+    var MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
     // Columns config
     var COLUMNS = [
@@ -485,27 +484,47 @@
       }
     }
 
-    // --- Image upload ---
+    // --- File upload (image ou vidéo) ---
     function handleFile(input) {
       var file = input.files[0];
       if (!file) return;
-      if (!file.type.startsWith('image/')) { alert('Seules les images sont acceptées.'); return; }
-      if (file.size > MAX_IMAGE_SIZE) { alert('Image trop volumineuse. Max : 5MB.'); return; }
-      screenshotFilename = file.name;
-      screenshotContentType = file.type;
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        screenshotBase64 = e.target.result.split(',')[1];
-        document.getElementById('preview-img').src = e.target.result;
+      var isImage = file.type.startsWith('image/');
+      var isVideo = file.type.startsWith('video/');
+      if (!isImage && !isVideo) { alert('Seules les images et vidéos sont acceptées.'); return; }
+      if (file.size > MAX_FILE_SIZE) { alert('Fichier trop volumineux. Max : 50MB.'); return; }
+      selectedFile = file;
+
+      var previewImg = document.getElementById('preview-img');
+      var previewVideo = document.getElementById('preview-video');
+
+      if (isImage) {
+        previewImg.style.display = 'block';
+        previewVideo.style.display = 'none';
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          previewImg.src = e.target.result;
+          document.getElementById('preview-container').style.display = 'block';
+          document.getElementById('drop-zone').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        previewImg.style.display = 'none';
+        previewVideo.style.display = 'block';
+        previewVideo.src = URL.createObjectURL(file);
         document.getElementById('preview-container').style.display = 'block';
         document.getElementById('drop-zone').style.display = 'none';
-      };
-      reader.readAsDataURL(file);
+      }
     }
 
-    function removeImage() {
-      screenshotBase64 = null; screenshotFilename = null; screenshotContentType = null;
+    function removeFile() {
+      selectedFile = null;
       document.getElementById('screenshot').value = '';
+      document.getElementById('preview-img').src = '';
+      document.getElementById('preview-img').style.display = 'block';
+      var previewVideo = document.getElementById('preview-video');
+      if (previewVideo.src) { URL.revokeObjectURL(previewVideo.src); }
+      previewVideo.src = '';
+      previewVideo.style.display = 'none';
       document.getElementById('preview-container').style.display = 'none';
       document.getElementById('drop-zone').style.display = 'block';
     }
@@ -572,6 +591,26 @@
       errEl.style.display = 'none'; btn.disabled = true; btn.textContent = 'Création en cours...';
 
       try {
+        // Étape 1 : upload du fichier si présent
+        var assetUrl = null;
+        if (selectedFile) {
+          btn.textContent = 'Upload du fichier...';
+          var uploadRes = await fetch('/upload-file', {
+            method: 'POST',
+            headers: {
+              'X-App-Password': authedPassword,
+              'X-File-Type': selectedFile.type,
+              'X-File-Name': selectedFile.name,
+            },
+            body: selectedFile,
+          });
+          var uploadData = await uploadRes.json();
+          if (!uploadRes.ok) throw new Error(uploadData.error || 'Erreur upload fichier');
+          assetUrl = uploadData.assetUrl;
+          btn.textContent = 'Création du ticket...';
+        }
+
+        // Étape 2 : créer le ticket avec l'assetUrl
         var res = await fetch('/create-ticket', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -579,7 +618,7 @@
             password: authedPassword, title: title, description: description,
             priority: parseInt(priority), ticketType: ticketType,
             projectId: currentProject.projectId,
-            screenshot: screenshotBase64 ? { base64: screenshotBase64, filename: screenshotFilename, contentType: screenshotContentType } : null
+            assetUrl: assetUrl
           })
         });
         var data = await res.json();
@@ -598,7 +637,7 @@
       document.getElementById('description').value = '';
       document.getElementById('priority').value = '2';
       document.getElementById('ticket-type').value = 'bug';
-      removeImage();
+      removeFile();
       loadTickets();
     }
 
@@ -760,12 +799,30 @@
 
       var imgContainer = document.getElementById('detail-image-container');
       var imgEl = document.getElementById('detail-image');
+      // Supprimer l'ancien élément vidéo s'il existe
+      var oldVideo = imgContainer.querySelector('video');
+      if (oldVideo) oldVideo.remove();
+
       if (parsed.imageUrl) {
-        imgEl.src = parsed.imageUrl;
+        var isVideoUrl = /\.(mp4|mov|webm|avi)(\?|$)/i.test(parsed.imageUrl);
+        if (isVideoUrl) {
+          imgEl.style.display = 'none';
+          var vid = document.createElement('video');
+          vid.src = parsed.imageUrl;
+          vid.controls = true;
+          vid.style.width = '100%';
+          vid.style.display = 'block';
+          vid.style.background = '#111';
+          imgContainer.appendChild(vid);
+        } else {
+          imgEl.style.display = 'block';
+          imgEl.src = parsed.imageUrl;
+        }
         imgContainer.style.display = 'block';
       } else {
         imgContainer.style.display = 'none';
         imgEl.src = '';
+        imgEl.style.display = 'block';
       }
 
       var contentEl = document.getElementById('detail-content');
