@@ -361,13 +361,13 @@
         <div class="field">
           <label>Titre</label>
           <div style="display:flex;gap:8px;align-items:stretch;">
-            <select id="title-section" style="flex:0 0 auto;min-width:100px;">
+            <select id="title-section" style="width:auto;flex:0 0 auto;">
               <option value="User">User</option>
               <option value="Pro">Pro</option>
               <option value="Website">Website</option>
               <option value="App">App</option>
             </select>
-            <input type="text" id="title" placeholder="Le bouton login ne répond pas sur la page d'accueil" maxlength="200" style="flex:1;">
+            <input type="text" id="title" placeholder="Le bouton login ne répond pas sur la page d'accueil" maxlength="200" style="flex:1;min-width:0;">
           </div>
           <div style="font-size:11px;color:#555;margin-top:4px;">Format : [Section] - Description claire du problème</div>
         </div>
@@ -449,13 +449,13 @@
         <div class="edit-field">
           <label>Titre</label>
           <div style="display:flex;gap:8px;align-items:stretch;">
-            <select id="edit-title-section" style="flex:0 0 auto;min-width:100px;">
+            <select id="edit-title-section" style="width:auto;flex:0 0 auto;">
               <option value="User">User</option>
               <option value="Pro">Pro</option>
               <option value="Website">Website</option>
               <option value="App">App</option>
             </select>
-            <input type="text" id="edit-title" maxlength="200" style="flex:1;">
+            <input type="text" id="edit-title" maxlength="200" style="flex:1;min-width:0;">
           </div>
         </div>
         <div class="edit-field">
@@ -1156,6 +1156,6 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.3</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.4</div>
 </body>
 </html>
