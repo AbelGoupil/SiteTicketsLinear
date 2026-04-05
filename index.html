@@ -363,11 +363,12 @@
         <div class="field">
           <label>Titre</label>
           <div style="display:flex;gap:8px;align-items:stretch;">
-            <select id="title-section" style="width:auto;flex:0 0 auto;">
+            <select id="title-section" style="width:auto;flex:0 0 auto;" required>
+              <option value="" disabled selected style="color:#666;">Section…</option>
               <option value="User">User</option>
               <option value="Pro">Pro</option>
               <option value="Website">Website</option>
-                          </select>
+            </select>
             <input type="text" id="title" placeholder="Le bouton login ne répond pas sur la page d'accueil" maxlength="200" style="flex:1;min-width:0;" oninput="titleWarningShown=false;">
           </div>
           <div style="font-size:11px;color:#555;margin-top:4px;">Le titre sera au format : [Section] - Description claire du problème</div>
@@ -689,6 +690,7 @@
     // --- Create ticket ---
     async function createTicket() {
       var section = document.getElementById('title-section').value;
+      if (!section) { errEl.innerText = 'Veuillez sélectionner une section (User, Pro ou Website).'; errEl.style.display = 'block'; return; }
       var titleInput = document.getElementById('title').value.trim();
       var description = document.getElementById('description').value.trim();
       var priority = document.getElementById('priority').value;
@@ -759,7 +761,7 @@
 
     function closeSuccess() {
       document.getElementById('success-overlay').classList.remove('visible');
-      document.getElementById('title-section').value = 'User';
+      document.getElementById('title-section').value = '';
       document.getElementById('title').value = '';
       document.getElementById('description').value = '';
       document.getElementById('priority').value = '2';
@@ -1213,6 +1215,6 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.11</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.12</div>
 </body>
 </html>
