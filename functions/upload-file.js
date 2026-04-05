@@ -2,7 +2,7 @@
 // Reçoit le fichier en binary body (pas de base64)
 // Retourne l'assetUrl à passer ensuite à create-ticket
 
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const ALLOWED_TYPES = [
   // Images
   'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp',
@@ -55,7 +55,7 @@ export async function onRequestPost(context) {
 
     if (fileBytes.length > MAX_FILE_SIZE) {
       return new Response(
-        JSON.stringify({ error: `Fichier trop volumineux (${(fileBytes.length / 1024 / 1024).toFixed(1)} MB). Taille max : 25 MB.` }),
+        JSON.stringify({ error: `Fichier trop volumineux (${(fileBytes.length / 1024 / 1024).toFixed(1)} MB). Taille max : 100 MB.` }),
         { status: 400, headers }
       );
     }

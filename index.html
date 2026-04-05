@@ -409,7 +409,7 @@
     var TYPE_LABEL_NAMES = ['Bug', 'Improvement', 'Idée pour plus tard'];
     var MAX_TITLE_LENGTH = 200;
     var MAX_DESCRIPTION_LENGTH = 5000;
-    var MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+    var MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
     // Columns config
     var COLUMNS = [
@@ -491,7 +491,7 @@
       var isImage = file.type.startsWith('image/');
       var isVideo = file.type.startsWith('video/');
       if (!isImage && !isVideo) { alert('Seules les images et vidéos sont acceptées.'); return; }
-      if (file.size > MAX_FILE_SIZE) { alert('Fichier trop volumineux (' + (file.size / 1024 / 1024).toFixed(1) + ' MB). Taille max : 25 MB.'); return; }
+      if (file.size > MAX_FILE_SIZE) { alert('Fichier trop volumineux (' + (file.size / 1024 / 1024).toFixed(1) + ' MB). Taille max : 100 MB.'); return; }
       selectedFile = file;
 
       var previewImg = document.getElementById('preview-img');
@@ -604,7 +604,7 @@
             },
             body: selectedFile,
           });
-          if (uploadRes.status === 413) throw new Error('Fichier trop volumineux. Taille max : 25 MB.');
+          if (uploadRes.status === 413) throw new Error('Fichier trop volumineux. Taille max : 100 MB.');
           var uploadData = await uploadRes.json();
           if (!uploadRes.ok) throw new Error(uploadData.error || 'Erreur upload fichier');
           assetUrl = uploadData.assetUrl;
