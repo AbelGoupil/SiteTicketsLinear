@@ -18,7 +18,7 @@ export async function onRequestPost(context) {
     }
 
     const body = await context.request.json();
-    const { password, title, description, priority, assetUrl, projectId, ticketType } = body;
+    const { password, title, description, priority, assetUrl, assetType, projectId, ticketType } = body;
 
     // --- Auth check ---
     if (!password || password !== env.APP_PASSWORD) {
@@ -96,7 +96,8 @@ export async function onRequestPost(context) {
           { status: 400, headers }
         );
       }
-      attachmentMarkdown = `![attachment](${assetUrl})\n\n`;
+      const altTag = (assetType && assetType.startsWith('video/')) ? 'video' : 'screenshot';
+      attachmentMarkdown = `![${altTag}](${assetUrl})\n\n`;
     }
 
     // --- Validation projectId ---

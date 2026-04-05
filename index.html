@@ -619,7 +619,8 @@
             password: authedPassword, title: title, description: description,
             priority: parseInt(priority), ticketType: ticketType,
             projectId: currentProject.projectId,
-            assetUrl: assetUrl
+            assetUrl: assetUrl,
+            assetType: selectedFile ? selectedFile.type : null
           })
         });
         var data = await res.json();
@@ -804,10 +805,9 @@
       var oldVideo = imgContainer.querySelector('video');
       if (oldVideo) oldVideo.remove();
 
-      if (parsed.imageUrl) {
-        var proxiedUrl = proxyFileUrl(parsed.imageUrl);
-        var isVideoUrl = /\.(mp4|mov|webm|avi)(\?|$)/i.test(parsed.imageUrl);
-        if (isVideoUrl) {
+      if (parsed.mediaUrl) {
+        var proxiedUrl = proxyFileUrl(parsed.mediaUrl);
+        if (parsed.mediaType === 'video') {
           imgEl.style.display = 'none';
           var vid = document.createElement('video');
           vid.src = proxiedUrl;
@@ -859,15 +859,21 @@
     }
 
     function parseDescription(desc) {
-      var imageUrl = null;
+      var mediaUrl = null;
+      var mediaType = 'image'; // 'image' ou 'video'
       var checkboxes = [];
       var textLines = [];
 
       var lines = desc.split('\n');
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
-        var imgMatch = line.match(/^!\[.*?\]\((.*?)\)$/);
-        if (imgMatch) { imageUrl = imgMatch[1]; continue; }
+        var imgMatch = line.match(/^!\[(.*?)\]\((.*?)\)$/);
+        if (imgMatch) {
+          var altText = imgMatch[1];
+          mediaUrl = imgMatch[2];
+          mediaType = (altText === 'video') ? 'video' : 'image';
+          continue;
+        }
 
         var cbChecked = line.match(/^- \[x\] (.+)$/i);
         if (cbChecked) { checkboxes.push({ checked: true, text: cbChecked[1] }); continue; }
@@ -875,11 +881,11 @@
         var cbUnchecked = line.match(/^- \[ \] (.+)$/);
         if (cbUnchecked) { checkboxes.push({ checked: false, text: cbUnchecked[1] }); continue; }
 
-        if (!imageUrl && line.trim() === '') continue;
+        if (!mediaUrl && line.trim() === '') continue;
         if (line.trim() !== '') textLines.push(line);
       }
 
-      return { imageUrl: imageUrl, checkboxes: checkboxes, text: textLines.join('\n').trim() };
+      return { mediaUrl: mediaUrl, mediaType: mediaType, checkboxes: checkboxes, text: textLines.join('\n').trim() };
     }
 
     function closeDetail(event) {
