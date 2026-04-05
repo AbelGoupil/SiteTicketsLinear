@@ -289,6 +289,8 @@
     }
     .btn-edit { background: transparent; color: #888; border: 1px solid #333 !important; }
     .btn-edit:hover { background: #1a1a1a; color: #fff; border-color: #555 !important; }
+    .btn-delete { background: transparent; color: #ff4444; border: 1px solid #5c2020 !important; }
+    .btn-delete:hover { background: #2d1515; color: #ff6b6b; border-color: #ff4444 !important; }
     .btn-save { background: #6c63ff; color: #fff; }
     .btn-save:hover { background: #5a52d5; }
     .btn-save:disabled { background: #333; color: #666; cursor: not-allowed; }
@@ -437,9 +439,10 @@
       </div>
       <div class="detail-body">
         <div id="detail-content"></div>
-        <!-- Mode lecture : bouton Modifier -->
+        <!-- Mode lecture : boutons Modifier + Supprimer -->
         <div class="detail-actions" id="detail-view-actions">
           <button class="btn-edit" onclick="enterEditMode()">Modifier</button>
+          <button class="btn-delete" id="btn-delete-ticket" onclick="confirmDeleteTicket()">Supprimer</button>
         </div>
       </div>
       <!-- Mode édition : formulaire -->
@@ -971,6 +974,13 @@
       }
 
       contentEl.innerHTML = html;
+
+      // Afficher le bouton Supprimer uniquement pour backlog et next
+      var currentState = (t.state && t.state.name) ? t.state.name : '';
+      var currentCol = STATUS_TO_COLUMN[currentState] || 'backlog';
+      var deleteBtn = document.getElementById('btn-delete-ticket');
+      deleteBtn.style.display = (currentCol === 'backlog' || currentCol === 'next') ? '' : 'none';
+
       document.getElementById('detail-overlay').classList.add('visible');
     }
 
@@ -1091,6 +1101,39 @@
       document.getElementById('edit-error').style.display = 'none';
     }
 
+    // --- Suppression de ticket ---
+    function confirmDeleteTicket() {
+      if (editingTicketIndex === null) return;
+      var t = ticketsData[editingTicketIndex];
+      if (!t) return;
+      if (confirm('Supprimer le ticket ' + t.identifier + ' ?\nCette action est irréversible.')) {
+        deleteTicket(t.id);
+      }
+    }
+
+    async function deleteTicket(issueId) {
+      var btn = document.getElementById('btn-delete-ticket');
+      btn.disabled = true;
+      btn.textContent = 'Suppression...';
+      try {
+        var res = await fetch('/delete-ticket', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: authedPassword, issueId: issueId })
+        });
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur HTTP ' + res.status);
+        // Fermer le popup et recharger
+        closeDetailDirect();
+        loadTickets();
+      } catch (err) {
+        alert('Erreur : ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Supprimer';
+      }
+    }
+
     async function saveEdit() {
       if (editingTicketIndex === null) return;
       var t = ticketsData[editingTicketIndex];
@@ -1170,6 +1213,6 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.6</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.7</div>
 </body>
 </html>
