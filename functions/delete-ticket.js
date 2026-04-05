@@ -1,4 +1,4 @@
-// Supprime (archive) un ticket Linear
+// Supprime définitivement un ticket Linear
 // Appelé depuis le bouton Supprimer du popup detail
 
 export async function onRequestPost(context) {
@@ -25,8 +25,8 @@ export async function onRequestPost(context) {
       );
     }
 
-    // --- Archive (soft delete) via Linear GraphQL ---
-    var mutation = `mutation { issueArchive(id: "${issueId}") { success } }`;
+    // --- Suppression définitive via Linear GraphQL ---
+    var mutation = `mutation { issueDelete(id: "${issueId}") { success } }`;
 
     var linearRes = await fetch('https://api.linear.app/graphql', {
       method: 'POST',
