@@ -364,7 +364,7 @@
           <label>Titre</label>
           <div style="display:flex;gap:8px;align-items:stretch;">
             <select id="title-section" style="width:auto;flex:0 0 auto;" required>
-              <option value="" disabled selected style="color:#666;">Section…</option>
+              <option value="" disabled selected style="color:#666;">Section</option>
               <option value="User">User</option>
               <option value="Pro">Pro</option>
               <option value="Website">Website</option>
@@ -689,14 +689,14 @@
 
     // --- Create ticket ---
     async function createTicket() {
+      var errEl = document.getElementById('ticket-error');
+      var btn = document.getElementById('submit-btn');
       var section = document.getElementById('title-section').value;
       if (!section) { errEl.innerText = 'Veuillez sélectionner une section (User, Pro ou Website).'; errEl.style.display = 'block'; return; }
       var titleInput = document.getElementById('title').value.trim();
       var description = document.getElementById('description').value.trim();
       var priority = document.getElementById('priority').value;
       var ticketType = document.getElementById('ticket-type').value;
-      var errEl = document.getElementById('ticket-error');
-      var btn = document.getElementById('submit-btn');
 
       // Validation du titre (avertissement une seule fois, passe au 2e clic)
       var titleError = validateTitle(titleInput);
@@ -1215,6 +1215,6 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.12</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.13</div>
 </body>
 </html>
