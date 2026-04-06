@@ -465,6 +465,22 @@
           <textarea id="edit-description" maxlength="5000"></textarea>
         </div>
         <div class="edit-field">
+          <label>Capture d'écran ou vidéo</label>
+          <div id="edit-media-current" style="display:none;margin-bottom:8px;">
+            <span id="edit-media-label" style="font-size:12px;color:#888;">Fichier actuel conservé</span>
+            <button type="button" onclick="removeEditFile()" style="margin-left:8px;background:#2d1515;color:#ff4444;border:1px solid #5c2020;border-radius:6px;padding:2px 10px;font-size:11px;cursor:pointer;">Retirer</button>
+          </div>
+          <div id="edit-drop-zone" style="border:1px dashed #333;border-radius:8px;padding:12px;text-align:center;cursor:pointer;" onclick="document.getElementById('edit-screenshot').click()">
+            <input type="file" id="edit-screenshot" onchange="handleEditFile(this)" style="display:none;">
+            <p style="color:#666;font-size:13px;" id="edit-drop-text">Cliquez pour changer ou ajouter un fichier</p>
+          </div>
+          <div id="edit-preview-container" style="display:none;position:relative;margin-top:8px;">
+            <img id="edit-preview-img" src="" style="width:100%;max-height:120px;object-fit:contain;background:#111;border-radius:6px;display:block;">
+            <video id="edit-preview-video" src="" controls style="display:none;width:100%;max-height:120px;background:#111;border-radius:6px;"></video>
+            <button type="button" onclick="removeEditNewFile()" style="position:absolute;top:4px;right:4px;background:#000;color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;">✕</button>
+          </div>
+        </div>
+        <div class="edit-field">
           <label>Type</label>
           <select id="edit-type">
             <option value="bug">Bug</option>
@@ -509,6 +525,8 @@
     var TITLE_ERROR_MSG = 'Êtes-vous sûr que le titre permet de décrire et de comprendre le contenu du ticket en un seul coup d\'œil ?\n\nExemples de bons titres :\n• Le bouton "Connexion" ne répond pas\n• L\'image de profil ne se met pas à jour après upload\n• Ajouter un filtre par date sur la liste des commandes';
     var titleWarningShown = false; // true = l'avertissement a déjà été affiché, on laisse passer au prochain clic
     var editTitleWarningShown = false;
+    var editSelectedFile = null; // nouveau fichier sélectionné en mode édition
+    var editRemoveMedia = false; // true = l'utilisateur veut retirer le media existant
 
     function validateTitle(titleText) {
       var t = titleText.trim();
@@ -1095,6 +1113,26 @@
       }
       document.getElementById('edit-type').value = typeVal;
 
+      // Reset état fichier
+      editSelectedFile = null;
+      editRemoveMedia = false;
+      document.getElementById('edit-preview-container').style.display = 'none';
+      document.getElementById('edit-preview-img').style.display = 'block';
+      document.getElementById('edit-preview-img').src = '';
+      document.getElementById('edit-preview-video').style.display = 'none';
+      document.getElementById('edit-preview-video').src = '';
+      document.getElementById('edit-screenshot').value = '';
+
+      // Afficher l'état du media actuel
+      if (parsed.mediaUrl) {
+        document.getElementById('edit-media-current').style.display = 'block';
+        document.getElementById('edit-media-label').textContent = (parsed.mediaType === 'video' ? 'Vidéo' : 'Image') + ' actuelle conservée';
+        document.getElementById('edit-drop-text').textContent = 'Cliquez pour remplacer le fichier';
+      } else {
+        document.getElementById('edit-media-current').style.display = 'none';
+        document.getElementById('edit-drop-text').textContent = 'Cliquez pour ajouter un fichier';
+      }
+
       // Masquer le contenu lecture, afficher le formulaire
       document.getElementById('detail-content').style.display = 'none';
       document.getElementById('detail-view-actions').style.display = 'none';
@@ -1107,6 +1145,57 @@
       document.getElementById('detail-view-actions').style.display = '';
       document.getElementById('detail-edit-form').style.display = 'none';
       document.getElementById('edit-error').style.display = 'none';
+      editSelectedFile = null;
+      editRemoveMedia = false;
+    }
+
+    function handleEditFile(input) {
+      var file = input.files[0];
+      if (!file) return;
+      if (file.size > MAX_FILE_SIZE) {
+        alert('Fichier trop volumineux. Taille max : 100 MB.');
+        input.value = '';
+        return;
+      }
+      editSelectedFile = file;
+      editRemoveMedia = false;
+      document.getElementById('edit-media-current').style.display = 'none';
+      var previewContainer = document.getElementById('edit-preview-container');
+      var previewImg = document.getElementById('edit-preview-img');
+      var previewVid = document.getElementById('edit-preview-video');
+      if (file.type.startsWith('video/')) {
+        previewImg.style.display = 'none';
+        previewVid.style.display = 'block';
+        previewVid.src = URL.createObjectURL(file);
+      } else {
+        previewVid.style.display = 'none';
+        previewImg.style.display = 'block';
+        previewImg.src = URL.createObjectURL(file);
+      }
+      previewContainer.style.display = 'block';
+    }
+
+    function removeEditNewFile() {
+      editSelectedFile = null;
+      document.getElementById('edit-screenshot').value = '';
+      document.getElementById('edit-preview-container').style.display = 'none';
+      // Re-afficher le media actuel s'il existait
+      var t = ticketsData[editingTicketIndex];
+      if (t) {
+        var parsed = parseDescription(t.description || '');
+        if (parsed.mediaUrl && !editRemoveMedia) {
+          document.getElementById('edit-media-current').style.display = 'block';
+        }
+      }
+    }
+
+    function removeEditFile() {
+      editRemoveMedia = true;
+      editSelectedFile = null;
+      document.getElementById('edit-media-current').style.display = 'none';
+      document.getElementById('edit-preview-container').style.display = 'none';
+      document.getElementById('edit-screenshot').value = '';
+      document.getElementById('edit-drop-text').textContent = 'Cliquez pour ajouter un fichier';
     }
 
     // --- Suppression de ticket ---
@@ -1171,12 +1260,42 @@
       btn.textContent = 'Enregistrement...';
 
       try {
-        // Reconstituer la description complète avec le media markdown s'il existe
+        // Étape 1 : upload du nouveau fichier si sélectionné
+        var newAssetUrl = null;
+        var newAssetType = null;
+        if (editSelectedFile) {
+          btn.textContent = 'Upload du fichier...';
+          var uploadRes = await fetch('/upload-file', {
+            method: 'POST',
+            headers: {
+              'X-App-Password': authedPassword,
+              'X-File-Type': editSelectedFile.type,
+              'X-File-Name': editSelectedFile.name,
+            },
+            body: editSelectedFile,
+          });
+          if (uploadRes.status === 413) throw new Error('Fichier trop volumineux. Taille max : 100 MB.');
+          var uploadData = await uploadRes.json();
+          if (!uploadRes.ok) throw new Error(uploadData.error || 'Erreur upload fichier');
+          newAssetUrl = uploadData.assetUrl;
+          newAssetType = editSelectedFile.type;
+          btn.textContent = 'Enregistrement...';
+        }
+
+        // Étape 2 : reconstituer la description avec le media markdown
         var desc = t.description || '';
         var parsed = parseDescription(desc);
         var fullDescription = '';
-        if (parsed.mediaUrl) {
-          // Garder le markdown media original (première ligne de la description)
+
+        if (newAssetUrl) {
+          // Nouveau fichier uploadé → nouveau markdown
+          if (newAssetType && newAssetType.startsWith('video/')) {
+            fullDescription = '![video](' + newAssetUrl + ')\n\n';
+          } else {
+            fullDescription = '![screenshot](' + newAssetUrl + ')\n\n';
+          }
+        } else if (!editRemoveMedia && parsed.mediaUrl) {
+          // Conserver le media existant
           var lines = desc.split('\n');
           for (var i = 0; i < lines.length; i++) {
             if (lines[i].match(/^!\[.*?\]\(.*?\)$/) || lines[i].match(/^\[.*?\]\(https:\/\/uploads\.linear\.app\/.*?\)$/)) {
@@ -1185,6 +1304,7 @@
             }
           }
         }
+        // Si editRemoveMedia = true et pas de nouveau fichier → pas de media markdown
         fullDescription += description;
 
         var res = await fetch('/update-ticket', {
@@ -1221,6 +1341,6 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.18</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.19</div>
 </body>
 </html>
