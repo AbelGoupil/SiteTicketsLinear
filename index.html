@@ -837,6 +837,11 @@
           grouped[col].push({ ticket: t, globalIndex: i });
         }
 
+        // Trier chaque colonne par priorité (0=Urgent, 1=High, 2=Medium, 3=Low)
+        for (var c = 0; c < COLUMNS.length; c++) {
+          grouped[COLUMNS[c].key].sort(function(a, b) { return a.ticket.priority - b.ticket.priority; });
+        }
+
         for (var c = 0; c < COLUMNS.length; c++) {
           var colKey = COLUMNS[c].key;
           var bodyEl = document.getElementById('body-' + colKey);
@@ -1215,6 +1220,6 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.16</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.17</div>
 </body>
 </html>
