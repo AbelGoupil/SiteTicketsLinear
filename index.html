@@ -76,7 +76,7 @@
       background: #2d1515; border: 1px solid #5c2020;
       color: #ff6b6b; padding: 10px; border-radius: 8px;
       font-size: 13px; margin-bottom: 12px;
-      display: none; word-break: break-word; white-space: pre-line;
+      display: none; word-break: break-word;
     }
 
     /* Drop zone */
@@ -155,7 +155,7 @@
       flex: 1; min-width: 0;
       background: #141414; border: 1px solid #2a2a2a;
       border-radius: 10px; display: flex;
-      flex-direction: column;
+      flex-direction: column; max-height: calc(100vh - 200px);
     }
 
     @media (max-width: 900px) {
@@ -183,7 +183,7 @@
     }
 
     .board-col-body {
-      flex: 1; padding: 8px;
+      flex: 1; overflow-y: auto; padding: 8px;
       min-height: 60px;
     }
 
@@ -281,43 +281,6 @@
     }
     .detail-checkbox-item.checked span { text-decoration: line-through; color: #666; }
 
-    /* Detail popup: edit mode */
-    .detail-actions { margin-top: 20px; display: flex; gap: 8px; }
-    .detail-actions button {
-      flex: 1; padding: 10px; border-radius: 8px;
-      font-size: 13px; font-weight: 600; cursor: pointer; border: none;
-    }
-    .btn-edit { background: transparent; color: #888; border: 1px solid #333 !important; }
-    .btn-edit:hover { background: #1a1a1a; color: #fff; border-color: #555 !important; }
-    .btn-delete { background: transparent; color: #ff4444; border: 1px solid #5c2020 !important; }
-    .btn-delete:hover { background: #2d1515; color: #ff6b6b; border-color: #ff4444 !important; }
-    .btn-save { background: #6c63ff; color: #fff; }
-    .btn-save:hover { background: #5a52d5; }
-    .btn-save:disabled { background: #333; color: #666; cursor: not-allowed; }
-    .btn-cancel { background: #2a2a2a; color: #aaa; }
-    .btn-cancel:hover { background: #333; }
-
-    .edit-field { margin-bottom: 12px; }
-    .edit-field label {
-      display: block; font-size: 11px; font-weight: 600;
-      color: #888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .edit-field input, .edit-field textarea, .edit-field select {
-      width: 100%; padding: 8px 12px; background: #111; border: 1px solid #333;
-      border-radius: 6px; color: #fff; font-size: 14px; font-family: inherit; outline: none;
-    }
-    .edit-field input:focus, .edit-field textarea:focus, .edit-field select:focus { border-color: #6c63ff; }
-    .edit-field textarea { min-height: 80px; resize: vertical; }
-    .edit-field select {
-      cursor: pointer; appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 12px center;
-    }
-    .edit-error {
-      background: #2d1515; border: 1px solid #5c2020; color: #ff6b6b;
-      padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; display: none;
-    }
-
     /* Landing page */
     .landing {
       background: #1a1a1a; border: 1px solid #2a2a2a;
@@ -361,17 +324,8 @@
       <div id="ticket-form-body" class="collapsed">
         <div class="error" id="ticket-error"></div>
         <div class="field">
-          <label>Titre</label>
-          <div style="display:flex;gap:8px;align-items:stretch;">
-            <select id="title-section" style="width:auto;flex:0 0 auto;min-width:120px;" required>
-              <option value="" disabled selected style="color:#666;">Section</option>
-              <option value="User">User</option>
-              <option value="Pro">Pro</option>
-              <option value="Website">Website</option>
-            </select>
-            <input type="text" id="title" placeholder="Le bouton login ne répond pas sur la page d'accueil" maxlength="200" style="flex:1;min-width:0;" oninput="titleWarningShown=false;">
-          </div>
-          <div style="font-size:11px;color:#555;margin-top:4px;">Le titre sera au format : [Section] - Description claire du problème</div>
+          <label for="title">Titre</label>
+          <input type="text" id="title" placeholder="Ex: [User] ou [Pro] - Le bouton login ne répond pas" maxlength="200">
         </div>
         <div class="field">
           <label for="screenshot">Capture d'écran ou vidéo (obligatoire si c'est un bug)</label>
@@ -431,7 +385,7 @@
     <div class="detail-box" id="detail-box">
       <button class="detail-close" onclick="closeDetailDirect()">&#10005;</button>
       <div class="detail-header">
-        <div class="detail-id"><span id="detail-id"></span> <a id="detail-linear-link" href="#" target="_blank" rel="noopener" title="Ouvrir dans Linear" style="color:#555;text-decoration:none;font-size:12px;vertical-align:middle;">&#8599;</a></div>
+        <div class="detail-id" id="detail-id"></div>
         <div class="detail-title" id="detail-title"></div>
         <div class="detail-priority-badge" id="detail-priority"></div>
       </div>
@@ -440,67 +394,6 @@
       </div>
       <div class="detail-body">
         <div id="detail-content"></div>
-        <!-- Mode lecture : boutons Modifier + Supprimer -->
-        <div class="detail-actions" id="detail-view-actions">
-          <button class="btn-edit" onclick="enterEditMode()">Modifier</button>
-          <button class="btn-delete" id="btn-delete-ticket" onclick="confirmDeleteTicket()">Supprimer</button>
-        </div>
-      </div>
-      <!-- Mode édition : formulaire -->
-      <div id="detail-edit-form" style="display:none; padding: 0 24px 24px;">
-        <div class="edit-error" id="edit-error"></div>
-        <div class="edit-field">
-          <label>Titre</label>
-          <div style="display:flex;gap:8px;align-items:stretch;">
-            <select id="edit-title-section" style="width:auto;flex:0 0 auto;">
-              <option value="User">User</option>
-              <option value="Pro">Pro</option>
-              <option value="Website">Website</option>
-                          </select>
-            <input type="text" id="edit-title" maxlength="200" style="flex:1;min-width:0;" oninput="editTitleWarningShown=false;">
-          </div>
-        </div>
-        <div class="edit-field">
-          <label>Description</label>
-          <textarea id="edit-description" maxlength="5000"></textarea>
-        </div>
-        <div class="edit-field">
-          <label>Capture d'écran ou vidéo</label>
-          <div id="edit-media-current" style="display:none;margin-bottom:8px;">
-            <span id="edit-media-label" style="font-size:12px;color:#888;">Fichier actuel conservé</span>
-            <button type="button" onclick="removeEditFile()" style="margin-left:8px;background:#2d1515;color:#ff4444;border:1px solid #5c2020;border-radius:6px;padding:2px 10px;font-size:11px;cursor:pointer;">Retirer</button>
-          </div>
-          <div id="edit-drop-zone" style="border:1px dashed #333;border-radius:8px;padding:12px;text-align:center;cursor:pointer;" onclick="document.getElementById('edit-screenshot').click()">
-            <input type="file" id="edit-screenshot" onchange="handleEditFile(this)" style="display:none;">
-            <p style="color:#666;font-size:13px;" id="edit-drop-text">Cliquez pour changer ou ajouter un fichier</p>
-          </div>
-          <div id="edit-preview-container" style="display:none;position:relative;margin-top:8px;">
-            <img id="edit-preview-img" src="" style="width:100%;max-height:120px;object-fit:contain;background:#111;border-radius:6px;display:block;">
-            <video id="edit-preview-video" src="" controls style="display:none;width:100%;max-height:120px;background:#111;border-radius:6px;"></video>
-            <button type="button" onclick="removeEditNewFile()" style="position:absolute;top:4px;right:4px;background:#000;color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;">✕</button>
-          </div>
-        </div>
-        <div class="edit-field">
-          <label>Type</label>
-          <select id="edit-type">
-            <option value="bug">Bug</option>
-            <option value="amelioration">Amélioration</option>
-            <option value="idee">Idée pour plus tard</option>
-          </select>
-        </div>
-        <div class="edit-field">
-          <label>Priorité</label>
-          <select id="edit-priority">
-            <option value="3">Low</option>
-            <option value="2">Medium</option>
-            <option value="1">High</option>
-            <option value="0">Urgent</option>
-          </select>
-        </div>
-        <div class="detail-actions">
-          <button class="btn-cancel" onclick="exitEditMode()">Annuler</button>
-          <button class="btn-save" id="edit-save-btn" onclick="saveEdit()">Enregistrer</button>
-        </div>
       </div>
     </div>
   </div>
@@ -511,53 +404,32 @@
     var selectedFile = null; // Le fichier brut (File object)
     var ticketsData = [];
     var currentProject = null;
-    var editingTicketIndex = null; // index du ticket en cours d'édition
 
     var PRIORITY_LABELS = { 0: 'Urgent', 1: 'High', 2: 'Medium', 3: 'Low', 4: 'None' };
     var TYPE_LABEL_NAMES = ['Bug', 'Improvement', 'Idée pour plus tard'];
     var MAX_TITLE_LENGTH = 200;
     var MAX_DESCRIPTION_LENGTH = 5000;
-    var MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-    var MIN_TITLE_LENGTH = 15;
-    var MIN_TITLE_WORDS = 4;
-    var TITLE_BLOCKLIST = ['bug', 'problème', 'probleme', 'test', 'fix', 'truc', 'ça marche pas', 'ca marche pas', 'erreur', 'souci', 'problème design', 'probleme design', 'design', 'pb', 'issue', 'todo', 'à faire', 'a faire', 'voir', 'modifier', 'changer', 'update'];
-
-    var TITLE_ERROR_MSG = 'Êtes-vous sûr que le titre permet de décrire et de comprendre le contenu du ticket en un seul coup d\'œil ?\n\nExemples de bons titres :\n• Le bouton "Connexion" ne répond pas\n• L\'image de profil ne se met pas à jour après upload\n• Ajouter un filtre par date sur la liste des commandes';
-    var titleWarningShown = false; // true = l'avertissement a déjà été affiché, on laisse passer au prochain clic
-    var editTitleWarningShown = false;
-    var editSelectedFile = null; // nouveau fichier sélectionné en mode édition
-    var editRemoveMedia = false; // true = l'utilisateur veut retirer le media existant
-
-    function validateTitle(titleText) {
-      var t = titleText.trim();
-      if (!t) return TITLE_ERROR_MSG;
-      if (t.length < MIN_TITLE_LENGTH) return TITLE_ERROR_MSG;
-      var words = t.split(/\s+/).filter(function(w) { return w.length > 0; });
-      if (words.length < MIN_TITLE_WORDS) return TITLE_ERROR_MSG;
-      var lower = t.toLowerCase();
-      for (var i = 0; i < TITLE_BLOCKLIST.length; i++) {
-        if (lower === TITLE_BLOCKLIST[i]) return TITLE_ERROR_MSG;
-      }
-      return null; // OK
-    }
+    var MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
     // Columns config
     var COLUMNS = [
       { key: 'backlog', name: 'Backlog', color: '#f2994a', droppable: true },
       { key: 'next', name: 'Voulu en prochaine version', color: '#6c63ff', droppable: true },
+      { key: 'release', name: 'Release en cours', color: '#56CCF2', droppable: false },
       { key: 'dev', name: 'En cours de code', color: '#f2c94c', droppable: false },
       { key: 'qa', name: 'En cours de qualif', color: '#BB87FC', droppable: false },
-      { key: 'done', name: 'Livré', color: '#4ade80', droppable: false },
+      { key: 'done', name: 'Prêt pour livraison', color: '#4ade80', droppable: false },
     ];
 
     // Mapping Linear status → column key
     var STATUS_TO_COLUMN = {
-      'Triage': 'backlog', 'Shaping': 'backlog', 'To Estimate': 'backlog',
-      'Todo': 'backlog', 'Later': 'backlog',
-      'Next version': 'next',
-      'In Dev': 'dev', 'In Design': 'dev',
-      'In Review': 'qa', 'Reviewed and Pending': 'qa',
-      'Deployed': 'done',
+      'Backlog': 'backlog', 'Triage': 'backlog', 'Shaping': 'backlog',
+      'To Estimate': 'backlog', 'Todo': 'backlog', 'Later': 'backlog',
+      'Next Release': 'next', 'Next version': 'next',
+      'Planned for Release': 'release',
+      'Dev in Progress': 'dev', 'In Dev': 'dev', 'In Design': 'dev',
+      'In QA': 'qa', 'In Review': 'qa', 'Reviewed and Pending': 'qa',
+      'Ready for deployment': 'done', 'Deployed on Prod': 'done', 'Deployed': 'done',
     };
 
     // Mapping column key → Linear state ID (for drag & drop)
@@ -621,7 +493,7 @@
       var isImage = file.type.startsWith('image/');
       var isVideo = file.type.startsWith('video/');
       if (!isImage && !isVideo) { alert('Seules les images et vidéos sont acceptées.'); return; }
-      if (file.size > MAX_FILE_SIZE) { alert('Fichier trop volumineux (' + (file.size / 1024 / 1024).toFixed(1) + ' MB). Taille max : 100 MB.'); return; }
+      if (file.size > MAX_FILE_SIZE) { alert('Fichier trop volumineux. Max : 50MB.'); return; }
       selectedFile = file;
 
       var previewImg = document.getElementById('preview-img');
@@ -707,28 +579,14 @@
 
     // --- Create ticket ---
     async function createTicket() {
-      var errEl = document.getElementById('ticket-error');
-      var btn = document.getElementById('submit-btn');
-      var section = document.getElementById('title-section').value;
-      if (!section) { errEl.innerText = 'Veuillez sélectionner une section (User, Pro ou Website).'; errEl.style.display = 'block'; return; }
-      var titleInput = document.getElementById('title').value.trim();
+      var title = document.getElementById('title').value.trim();
       var description = document.getElementById('description').value.trim();
       var priority = document.getElementById('priority').value;
       var ticketType = document.getElementById('ticket-type').value;
+      var errEl = document.getElementById('ticket-error');
+      var btn = document.getElementById('submit-btn');
 
-      // Validation du titre (avertissement une seule fois, passe au 2e clic)
-      var titleError = validateTitle(titleInput);
-      if (titleError && !titleWarningShown) {
-        errEl.innerText = titleError;
-        errEl.style.display = 'block';
-        titleWarningShown = true;
-        return;
-      }
-      titleWarningShown = false;
-      if (!description) { errEl.innerText = 'La description est obligatoire.'; errEl.style.display = 'block'; return; }
-
-      // Construire le titre final avec la section
-      var title = '[' + section + '] - ' + titleInput.charAt(0).toUpperCase() + titleInput.slice(1);
+      if (!title || !description) { errEl.textContent = 'Titre et description sont obligatoires.'; errEl.style.display = 'block'; return; }
       if (title.length > MAX_TITLE_LENGTH) { errEl.textContent = 'Titre trop long.'; errEl.style.display = 'block'; return; }
       if (description.length > MAX_DESCRIPTION_LENGTH) { errEl.textContent = 'Description trop longue.'; errEl.style.display = 'block'; return; }
 
@@ -748,7 +606,6 @@
             },
             body: selectedFile,
           });
-          if (uploadRes.status === 413) throw new Error('Fichier trop volumineux. Taille max : 100 MB.');
           var uploadData = await uploadRes.json();
           if (!uploadRes.ok) throw new Error(uploadData.error || 'Erreur upload fichier');
           assetUrl = uploadData.assetUrl;
@@ -763,8 +620,7 @@
             password: authedPassword, title: title, description: description,
             priority: parseInt(priority), ticketType: ticketType,
             projectId: currentProject.projectId,
-            assetUrl: assetUrl,
-            assetType: selectedFile ? selectedFile.type : null
+            assetUrl: assetUrl
           })
         });
         var data = await res.json();
@@ -779,7 +635,6 @@
 
     function closeSuccess() {
       document.getElementById('success-overlay').classList.remove('visible');
-      document.getElementById('title-section').value = '';
       document.getElementById('title').value = '';
       document.getElementById('description').value = '';
       document.getElementById('priority').value = '2';
@@ -853,11 +708,6 @@
           var col = STATUS_TO_COLUMN[stateName] || 'backlog';
           if (!grouped[col]) col = 'backlog';
           grouped[col].push({ ticket: t, globalIndex: i });
-        }
-
-        // Trier chaque colonne par priorité (0=Urgent, 1=High, 2=Medium, 3=Low)
-        for (var c = 0; c < COLUMNS.length; c++) {
-          grouped[COLUMNS[c].key].sort(function(a, b) { return a.ticket.priority - b.ticket.priority; });
         }
 
         for (var c = 0; c < COLUMNS.length; c++) {
@@ -939,10 +789,7 @@
       var t = ticketsData[index];
       if (!t) return;
 
-      editingTicketIndex = index;
-
       document.getElementById('detail-id').textContent = t.identifier;
-      document.getElementById('detail-linear-link').href = t.url || '#';
       document.getElementById('detail-title').textContent = t.title;
 
       var prioEl = document.getElementById('detail-priority');
@@ -958,12 +805,12 @@
       var oldVideo = imgContainer.querySelector('video');
       if (oldVideo) oldVideo.remove();
 
-      if (parsed.mediaUrl) {
-        var proxiedUrl = proxyFileUrl(parsed.mediaUrl);
-        if (parsed.mediaType === 'video') {
+      if (parsed.imageUrl) {
+        var isVideoUrl = /\.(mp4|mov|webm|avi)(\?|$)/i.test(parsed.imageUrl);
+        if (isVideoUrl) {
           imgEl.style.display = 'none';
           var vid = document.createElement('video');
-          vid.src = proxiedUrl;
+          vid.src = parsed.imageUrl;
           vid.controls = true;
           vid.style.width = '100%';
           vid.style.display = 'block';
@@ -971,7 +818,7 @@
           imgContainer.appendChild(vid);
         } else {
           imgEl.style.display = 'block';
-          imgEl.src = proxiedUrl;
+          imgEl.src = parsed.imageUrl;
         }
         imgContainer.style.display = 'block';
       } else {
@@ -1000,46 +847,19 @@
       }
 
       contentEl.innerHTML = html;
-
-      // Afficher Modifier + Supprimer uniquement pour backlog et next
-      var currentState = (t.state && t.state.name) ? t.state.name : '';
-      var currentCol = STATUS_TO_COLUMN[currentState] || 'backlog';
-      var canEdit = (currentCol === 'backlog' || currentCol === 'next');
-      document.getElementById('detail-view-actions').style.display = canEdit ? '' : 'none';
-
       document.getElementById('detail-overlay').classList.add('visible');
     }
 
-    // Proxy les URLs Linear privées via /get-file pour qu'elles s'affichent partout
-    function proxyFileUrl(url) {
-      if (url && url.indexOf('uploads.linear.app') !== -1) {
-        return '/get-file?url=' + encodeURIComponent(url) + '&p=' + encodeURIComponent(authedPassword);
-      }
-      return url;
-    }
-
     function parseDescription(desc) {
-      var mediaUrl = null;
-      var mediaType = 'image'; // 'image' ou 'video'
+      var imageUrl = null;
       var checkboxes = [];
       var textLines = [];
 
       var lines = desc.split('\n');
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
-        // Détecte ![alt](url) pour les images ET [text](url) pour les vidéos (Linear reformate les vidéos)
-        var imgMatch = line.match(/^!\[(.*?)\]\((.*?)\)$/);
-        if (imgMatch) {
-          mediaUrl = imgMatch[2];
-          mediaType = (imgMatch[1] === 'video') ? 'video' : 'image';
-          continue;
-        }
-        var linkMatch = line.match(/^\[(.*?)\]\((https:\/\/uploads\.linear\.app\/.*?)\)$/);
-        if (linkMatch && !mediaUrl) {
-          mediaUrl = linkMatch[2];
-          mediaType = 'video'; // Linear transforme ![video] en [filename] pour les vidéos
-          continue;
-        }
+        var imgMatch = line.match(/^!\[.*?\]\((.*?)\)$/);
+        if (imgMatch) { imageUrl = imgMatch[1]; continue; }
 
         var cbChecked = line.match(/^- \[x\] (.+)$/i);
         if (cbChecked) { checkboxes.push({ checked: true, text: cbChecked[1] }); continue; }
@@ -1047,292 +867,20 @@
         var cbUnchecked = line.match(/^- \[ \] (.+)$/);
         if (cbUnchecked) { checkboxes.push({ checked: false, text: cbUnchecked[1] }); continue; }
 
-        if (!mediaUrl && line.trim() === '') continue;
+        if (!imageUrl && line.trim() === '') continue;
         if (line.trim() !== '') textLines.push(line);
       }
 
-      return { mediaUrl: mediaUrl, mediaType: mediaType, checkboxes: checkboxes, text: textLines.join('\n').trim() };
+      return { imageUrl: imageUrl, checkboxes: checkboxes, text: textLines.join('\n').trim() };
     }
 
     function closeDetail(event) {
-      if (event.target === document.getElementById('detail-overlay')) {
-        exitEditMode();
+      if (event.target === document.getElementById('detail-overlay'))
         document.getElementById('detail-overlay').classList.remove('visible');
-      }
     }
 
     function closeDetailDirect() {
-      exitEditMode();
       document.getElementById('detail-overlay').classList.remove('visible');
-    }
-
-    // --- Mode édition du ticket ---
-    function enterEditMode() {
-      if (editingTicketIndex === null) return;
-      var t = ticketsData[editingTicketIndex];
-      if (!t) return;
-
-      // Parser la description pour extraire le texte sans le media markdown
-      var desc = t.description || '';
-      var parsed = parseDescription(desc);
-
-      // Reconstituer la description éditable depuis les checkboxes et le texte
-      var editableDesc = '';
-      if (parsed.checkboxes.length > 0) {
-        for (var i = 0; i < parsed.checkboxes.length; i++) {
-          var cb = parsed.checkboxes[i];
-          editableDesc += (cb.checked ? '- [x] ' : '- [ ] ') + cb.text + '\n';
-        }
-      }
-      if (parsed.text) {
-        if (editableDesc) editableDesc += '\n';
-        editableDesc += parsed.text;
-      }
-
-      // Pré-remplir les champs — parser section depuis le titre existant
-      var titleParts = (t.title || '').match(/^\[?(User|Pro|Website)\]?\s*[-:]\s*(.*)$/i);
-      if (titleParts) {
-        document.getElementById('edit-title-section').value = titleParts[1];
-        document.getElementById('edit-title').value = titleParts[2];
-      } else {
-        document.getElementById('edit-title-section').value = 'User';
-        document.getElementById('edit-title').value = t.title;
-      }
-      document.getElementById('edit-description').value = editableDesc.trim();
-      document.getElementById('edit-priority').value = String(t.priority);
-
-      // Déterminer le type depuis les labels
-      var typeVal = 'bug';
-      if (t.labels && t.labels.nodes) {
-        for (var j = 0; j < t.labels.nodes.length; j++) {
-          var lbl = t.labels.nodes[j].name;
-          if (lbl === 'Bug') typeVal = 'bug';
-          else if (lbl === 'Improvement') typeVal = 'amelioration';
-          else if (lbl === 'Idée pour plus tard') typeVal = 'idee';
-        }
-      }
-      document.getElementById('edit-type').value = typeVal;
-
-      // Reset état fichier
-      editSelectedFile = null;
-      editRemoveMedia = false;
-      document.getElementById('edit-preview-container').style.display = 'none';
-      document.getElementById('edit-preview-img').style.display = 'block';
-      document.getElementById('edit-preview-img').src = '';
-      document.getElementById('edit-preview-video').style.display = 'none';
-      document.getElementById('edit-preview-video').src = '';
-      document.getElementById('edit-screenshot').value = '';
-
-      // Afficher l'état du media actuel
-      if (parsed.mediaUrl) {
-        document.getElementById('edit-media-current').style.display = 'block';
-        document.getElementById('edit-media-label').textContent = (parsed.mediaType === 'video' ? 'Vidéo' : 'Image') + ' actuelle conservée';
-        document.getElementById('edit-drop-text').textContent = 'Cliquez pour remplacer le fichier';
-      } else {
-        document.getElementById('edit-media-current').style.display = 'none';
-        document.getElementById('edit-drop-text').textContent = 'Cliquez pour ajouter un fichier';
-      }
-
-      // Masquer le contenu lecture, afficher le formulaire
-      document.getElementById('detail-content').style.display = 'none';
-      document.getElementById('detail-view-actions').style.display = 'none';
-      document.getElementById('detail-edit-form').style.display = 'block';
-      document.getElementById('edit-error').style.display = 'none';
-    }
-
-    function exitEditMode() {
-      document.getElementById('detail-content').style.display = '';
-      document.getElementById('detail-view-actions').style.display = '';
-      document.getElementById('detail-edit-form').style.display = 'none';
-      document.getElementById('edit-error').style.display = 'none';
-      editSelectedFile = null;
-      editRemoveMedia = false;
-    }
-
-    function handleEditFile(input) {
-      var file = input.files[0];
-      if (!file) return;
-      if (file.size > MAX_FILE_SIZE) {
-        alert('Fichier trop volumineux. Taille max : 100 MB.');
-        input.value = '';
-        return;
-      }
-      editSelectedFile = file;
-      editRemoveMedia = false;
-      document.getElementById('edit-media-current').style.display = 'none';
-      var previewContainer = document.getElementById('edit-preview-container');
-      var previewImg = document.getElementById('edit-preview-img');
-      var previewVid = document.getElementById('edit-preview-video');
-      if (file.type.startsWith('video/')) {
-        previewImg.style.display = 'none';
-        previewVid.style.display = 'block';
-        previewVid.src = URL.createObjectURL(file);
-      } else {
-        previewVid.style.display = 'none';
-        previewImg.style.display = 'block';
-        previewImg.src = URL.createObjectURL(file);
-      }
-      previewContainer.style.display = 'block';
-    }
-
-    function removeEditNewFile() {
-      editSelectedFile = null;
-      document.getElementById('edit-screenshot').value = '';
-      document.getElementById('edit-preview-container').style.display = 'none';
-      // Re-afficher le media actuel s'il existait
-      var t = ticketsData[editingTicketIndex];
-      if (t) {
-        var parsed = parseDescription(t.description || '');
-        if (parsed.mediaUrl && !editRemoveMedia) {
-          document.getElementById('edit-media-current').style.display = 'block';
-        }
-      }
-    }
-
-    function removeEditFile() {
-      editRemoveMedia = true;
-      editSelectedFile = null;
-      document.getElementById('edit-media-current').style.display = 'none';
-      document.getElementById('edit-preview-container').style.display = 'none';
-      document.getElementById('edit-screenshot').value = '';
-      document.getElementById('edit-drop-text').textContent = 'Cliquez pour ajouter un fichier';
-    }
-
-    // --- Suppression de ticket ---
-    function confirmDeleteTicket() {
-      if (editingTicketIndex === null) return;
-      var t = ticketsData[editingTicketIndex];
-      if (!t) return;
-      if (confirm('Supprimer le ticket ' + t.identifier + ' ?\nCette action est irréversible.')) {
-        deleteTicket(t.id);
-      }
-    }
-
-    async function deleteTicket(issueId) {
-      var btn = document.getElementById('btn-delete-ticket');
-      btn.disabled = true;
-      btn.textContent = 'Suppression...';
-      try {
-        var res = await fetch('/delete-ticket', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: authedPassword, issueId: issueId })
-        });
-        var data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Erreur HTTP ' + res.status);
-        // Fermer le popup et recharger
-        closeDetailDirect();
-        loadTickets();
-      } catch (err) {
-        alert('Erreur : ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Supprimer';
-      }
-    }
-
-    async function saveEdit() {
-      if (editingTicketIndex === null) return;
-      var t = ticketsData[editingTicketIndex];
-      if (!t) return;
-
-      var editSection = document.getElementById('edit-title-section').value;
-      var editTitleInput = document.getElementById('edit-title').value.trim();
-      var description = document.getElementById('edit-description').value.trim();
-      var priority = parseInt(document.getElementById('edit-priority').value);
-      var ticketType = document.getElementById('edit-type').value;
-      var errEl = document.getElementById('edit-error');
-      var btn = document.getElementById('edit-save-btn');
-
-      var titleError = validateTitle(editTitleInput);
-      if (titleError && !editTitleWarningShown) {
-        errEl.innerText = titleError;
-        errEl.style.display = 'block';
-        editTitleWarningShown = true;
-        return;
-      }
-      editTitleWarningShown = false;
-      if (!description) { errEl.innerText = 'La description est obligatoire.'; errEl.style.display = 'block'; return; }
-      var title = '[' + editSection + '] - ' + editTitleInput.charAt(0).toUpperCase() + editTitleInput.slice(1);
-
-      errEl.style.display = 'none';
-      btn.disabled = true;
-      btn.textContent = 'Enregistrement...';
-
-      try {
-        // Étape 1 : upload du nouveau fichier si sélectionné
-        var newAssetUrl = null;
-        var newAssetType = null;
-        if (editSelectedFile) {
-          btn.textContent = 'Upload du fichier...';
-          var uploadRes = await fetch('/upload-file', {
-            method: 'POST',
-            headers: {
-              'X-App-Password': authedPassword,
-              'X-File-Type': editSelectedFile.type,
-              'X-File-Name': editSelectedFile.name,
-            },
-            body: editSelectedFile,
-          });
-          if (uploadRes.status === 413) throw new Error('Fichier trop volumineux. Taille max : 100 MB.');
-          var uploadData = await uploadRes.json();
-          if (!uploadRes.ok) throw new Error(uploadData.error || 'Erreur upload fichier');
-          newAssetUrl = uploadData.assetUrl;
-          newAssetType = editSelectedFile.type;
-          btn.textContent = 'Enregistrement...';
-        }
-
-        // Étape 2 : reconstituer la description avec le media markdown
-        var desc = t.description || '';
-        var parsed = parseDescription(desc);
-        var fullDescription = '';
-
-        if (newAssetUrl) {
-          // Nouveau fichier uploadé → nouveau markdown
-          if (newAssetType && newAssetType.startsWith('video/')) {
-            fullDescription = '![video](' + newAssetUrl + ')\n\n';
-          } else {
-            fullDescription = '![screenshot](' + newAssetUrl + ')\n\n';
-          }
-        } else if (!editRemoveMedia && parsed.mediaUrl) {
-          // Conserver le media existant
-          var lines = desc.split('\n');
-          for (var i = 0; i < lines.length; i++) {
-            if (lines[i].match(/^!\[.*?\]\(.*?\)$/) || lines[i].match(/^\[.*?\]\(https:\/\/uploads\.linear\.app\/.*?\)$/)) {
-              fullDescription = lines[i] + '\n\n';
-              break;
-            }
-          }
-        }
-        // Si editRemoveMedia = true et pas de nouveau fichier → pas de media markdown
-        fullDescription += description;
-
-        var res = await fetch('/update-ticket', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            password: authedPassword,
-            issueId: t.id,
-            title: title,
-            description: fullDescription,
-            priority: priority,
-            ticketType: ticketType
-          })
-        });
-        var data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Erreur HTTP ' + res.status);
-
-        // Succès : quitter le mode édition, recharger les tickets
-        exitEditMode();
-        closeDetailDirect();
-        loadTickets();
-      } catch (err) {
-        errEl.textContent = 'Erreur : ' + err.message;
-        errEl.style.display = 'block';
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Enregistrer';
-      }
     }
 
     function escapeHtml(str) {
@@ -1341,6 +889,5 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.19</div>
 </body>
 </html>
