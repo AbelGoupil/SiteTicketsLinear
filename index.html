@@ -370,7 +370,7 @@
     <div class="board" id="board"></div>
   </div>
 
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.21</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.22</div>
 
   <!-- Success popup -->
   <div class="overlay" id="success-overlay">
@@ -556,17 +556,49 @@
       if (e.key === 'Enter') authenticate();
     });
 
-    function authenticate() {
+    async function authenticate() {
       var pwd = document.getElementById('password').value.trim();
       var errEl = document.getElementById('auth-error');
+      var btn = document.getElementById('auth-btn');
       if (!pwd) { errEl.textContent = 'Veuillez entrer le mot de passe.'; errEl.style.display = 'block'; return; }
-      authedPassword = pwd;
+      if (!currentProject || !currentProject.projectId) {
+        errEl.textContent = 'Projet introuvable.'; errEl.style.display = 'block'; return;
+      }
       errEl.style.display = 'none';
-      document.getElementById('auth-screen').style.display = 'none';
-      document.getElementById('ticket-screen').style.display = 'block';
-      document.getElementById('tickets-section').style.display = 'block';
-      buildBoard();
-      loadTickets();
+      btn.disabled = true;
+      var oldLabel = btn.textContent;
+      btn.textContent = 'Vérification...';
+      try {
+        var res = await fetch('/list-tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwd, projectId: currentProject.projectId })
+        });
+        if (res.status === 401 || res.status === 403) {
+          alert('Mot de passe incorrect.');
+          document.getElementById('password').value = '';
+          document.getElementById('password').focus();
+          return;
+        }
+        if (!res.ok) {
+          var data = {};
+          try { data = await res.json(); } catch(e) {}
+          alert('Erreur : ' + (data.error || ('HTTP ' + res.status)));
+          return;
+        }
+        // OK : on garde le password et on bascule
+        authedPassword = pwd;
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('ticket-screen').style.display = 'block';
+        document.getElementById('tickets-section').style.display = 'block';
+        buildBoard();
+        loadTickets();
+      } catch (err) {
+        alert('Erreur réseau : ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oldLabel;
+      }
     }
 
     // --- Form toggle ---
@@ -894,3 +926,4 @@
   </script>
 </body>
 </html>
+
