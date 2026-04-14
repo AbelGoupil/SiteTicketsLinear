@@ -102,6 +102,32 @@
       cursor: pointer; display: flex; align-items: center; justify-content: center;
     }
 
+    /* Documents (multi-upload) */
+    #docs-drop-zone {
+      border: 2px dashed #333; border-radius: 8px;
+      padding: 12px; text-align: center; cursor: pointer;
+      transition: border-color 0.2s; position: relative;
+    }
+    #docs-drop-zone:hover, #docs-drop-zone.dragover { border-color: #6c63ff; }
+    #docs-drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    #docs-drop-zone p { color: #666; font-size: 13px; pointer-events: none; }
+    #docs-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+    .doc-item {
+      display: flex; align-items: center; gap: 10px;
+      background: #111; border: 1px solid #2a2a2a; border-radius: 6px;
+      padding: 8px 10px; font-size: 12px;
+    }
+    .doc-item .doc-icon { font-size: 14px; }
+    .doc-item .doc-name { flex: 1; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-item .doc-size { color: #777; font-size: 11px; }
+    .doc-item .doc-status { color: #888; font-size: 11px; }
+    .doc-item .doc-status.ok { color: #6fcf97; }
+    .doc-item .doc-status.err { color: #ff6b6b; }
+    .doc-item button {
+      background: transparent; border: none; color: #ff6b6b;
+      cursor: pointer; font-size: 14px; padding: 0 4px;
+    }
+
     /* Collapsible form header */
     .collapsible-header {
       display: flex; justify-content: space-between; align-items: center;
@@ -375,6 +401,14 @@
           <div style="font-size:11px;color:#555;margin-top:4px;">Le titre sera au format : [Section] - Description claire du problème</div>
         </div>
         <div class="field">
+          <label for="documents">Documents (optionnel)</label>
+          <div id="docs-drop-zone">
+            <input type="file" id="documents" multiple onchange="handleDocs(this)">
+            <p>Cliquez ou glissez un ou plusieurs documents (PDF, docx, xlsx, zip...)</p>
+          </div>
+          <div id="docs-list"></div>
+        </div>
+        <div class="field">
           <label for="screenshot">Capture d'écran ou vidéo (obligatoire si c'est un bug)</label>
           <div id="drop-zone">
             <input type="file" id="screenshot" onchange="handleFile(this)">
@@ -512,6 +546,9 @@
     // --- State ---
     var authedPassword = null;
     var selectedFile = null; // Le fichier brut (File object)
+    var selectedDocs = []; // Documents joints : [{ id, file, name, size, status: 'pending'|'uploading'|'done'|'error', url? }]
+    var docIdCounter = 0;
+    var MAX_DOCS = 20;
     var ticketsData = [];
     var currentProject = null;
     var editingTicketIndex = null; // index du ticket en cours d'édition
@@ -651,6 +688,71 @@
       }
     }
 
+    // --- Documents (multi-upload) ---
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+      return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    function renderDocs() {
+      var list = document.getElementById('docs-list');
+      if (!list) return;
+      list.innerHTML = '';
+      for (var i = 0; i < selectedDocs.length; i++) {
+        var d = selectedDocs[i];
+        var item = document.createElement('div');
+        item.className = 'doc-item';
+        var statusClass = d.status === 'done' ? 'ok' : (d.status === 'error' ? 'err' : '');
+        var statusText = d.status === 'done' ? 'Uploadé' : (d.status === 'error' ? (d.errorMsg || 'Erreur') : (d.status === 'uploading' ? 'Upload...' : ''));
+        item.innerHTML =
+          '<span class="doc-icon">📎</span>' +
+          '<span class="doc-name"></span>' +
+          '<span class="doc-size">' + formatSize(d.size) + '</span>' +
+          '<span class="doc-status ' + statusClass + '">' + statusText + '</span>' +
+          '<button type="button" title="Retirer">&#10005;</button>';
+        item.querySelector('.doc-name').textContent = d.name;
+        (function(id) {
+          item.querySelector('button').onclick = function() { removeDoc(id); };
+        })(d.id);
+        list.appendChild(item);
+      }
+    }
+
+    function handleDocs(input) {
+      var files = input.files;
+      if (!files || files.length === 0) return;
+      for (var i = 0; i < files.length; i++) {
+        if (selectedDocs.length >= MAX_DOCS) {
+          alert('Maximum ' + MAX_DOCS + ' documents.');
+          break;
+        }
+        var f = files[i];
+        if (f.size > MAX_FILE_SIZE) {
+          alert('Document "' + f.name + '" trop volumineux (max 100 MB).');
+          continue;
+        }
+        selectedDocs.push({
+          id: ++docIdCounter, file: f, name: f.name, size: f.size,
+          type: f.type || 'application/octet-stream', status: 'pending', url: null
+        });
+      }
+      input.value = '';
+      renderDocs();
+    }
+
+    function removeDoc(id) {
+      selectedDocs = selectedDocs.filter(function(d) { return d.id !== id; });
+      renderDocs();
+    }
+
+    function resetDocs() {
+      selectedDocs = [];
+      var el = document.getElementById('documents');
+      if (el) el.value = '';
+      renderDocs();
+    }
+
     function removeFile() {
       selectedFile = null;
       document.getElementById('screenshot').value = '';
@@ -679,6 +781,23 @@
           handleFile(input);
         }
       });
+
+      var ddz = document.getElementById('docs-drop-zone');
+      if (ddz) {
+        ddz.addEventListener('dragover', function(e) { e.preventDefault(); ddz.classList.add('dragover'); });
+        ddz.addEventListener('dragleave', function() { ddz.classList.remove('dragover'); });
+        ddz.addEventListener('drop', function(e) {
+          e.preventDefault(); ddz.classList.remove('dragover');
+          var files = e.dataTransfer.files;
+          if (files && files.length) {
+            var input = document.getElementById('documents');
+            var dt = new DataTransfer();
+            for (var i = 0; i < files.length; i++) dt.items.add(files[i]);
+            input.files = dt.files;
+            handleDocs(input);
+          }
+        });
+      }
       init();
     });
 
@@ -771,7 +890,7 @@
       errEl.style.display = 'none'; btn.disabled = true; btn.textContent = 'Création en cours...';
 
       try {
-        // Étape 1 : upload du fichier si présent
+        // Étape 1a : upload du screenshot/vidéo si présent
         var assetUrl = null;
         if (selectedFile) {
           btn.textContent = 'Upload du fichier...';
@@ -791,7 +910,40 @@
           btn.textContent = 'Création du ticket...';
         }
 
-        // Étape 2 : créer le ticket avec l'assetUrl
+        // Étape 1b : upload des documents (séquentiel pour UX claire)
+        var uploadedDocs = [];
+        for (var di = 0; di < selectedDocs.length; di++) {
+          var doc = selectedDocs[di];
+          btn.textContent = 'Upload document ' + (di + 1) + '/' + selectedDocs.length + '...';
+          doc.status = 'uploading'; renderDocs();
+          try {
+            var docRes = await fetch('/upload-file', {
+              method: 'POST',
+              headers: {
+                'X-App-Password': authedPassword,
+                'X-File-Type': doc.type || 'application/octet-stream',
+                'X-File-Name': doc.name,
+                'X-File-Kind': 'document',
+              },
+              body: doc.file,
+            });
+            if (docRes.status === 413) throw new Error('Document trop volumineux');
+            var docData = await docRes.json();
+            if (!docRes.ok) throw new Error(docData.error || 'Erreur upload document');
+            doc.url = docData.assetUrl;
+            doc.status = 'done';
+            uploadedDocs.push({ url: doc.url, name: doc.name });
+          } catch (e) {
+            doc.status = 'error';
+            doc.errorMsg = e.message;
+            renderDocs();
+            throw new Error('Upload du document "' + doc.name + '" échoué : ' + e.message);
+          }
+          renderDocs();
+        }
+
+        // Étape 2 : créer le ticket
+        btn.textContent = 'Création du ticket...';
         var res = await fetch('/create-ticket', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -800,7 +952,8 @@
             priority: parseInt(priority), ticketType: ticketType,
             projectId: currentProject.projectId,
             assetUrl: assetUrl,
-            assetType: selectedFile ? selectedFile.type : null
+            assetType: selectedFile ? selectedFile.type : null,
+            documents: uploadedDocs
           })
         });
         var data = await res.json();
@@ -818,9 +971,10 @@
       document.getElementById('title-section').value = '';
       document.getElementById('title').value = '';
       document.getElementById('description').value = '';
-      document.getElementById('priority').value = '2';
+      document.getElementById('priority').value = '3';
       document.getElementById('ticket-type').value = 'bug';
       removeFile();
+      resetDocs();
       loadTickets();
     }
 
@@ -1380,7 +1534,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.26</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.27</div>
 </body>
 </html>
 
