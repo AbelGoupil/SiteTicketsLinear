@@ -501,6 +501,14 @@
           <textarea id="edit-description" maxlength="5000"></textarea>
         </div>
         <div class="edit-field">
+          <label>Documents</label>
+          <div id="edit-docs-list" style="margin-bottom:8px;"></div>
+          <div id="edit-docs-drop-zone" style="border:1px dashed #333;border-radius:8px;padding:12px;text-align:center;cursor:pointer;position:relative;">
+            <input type="file" id="edit-documents" multiple onchange="handleEditDocs(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;">
+            <p style="color:#666;font-size:13px;pointer-events:none;">Cliquez ou glissez pour ajouter des documents</p>
+          </div>
+        </div>
+        <div class="edit-field">
           <label>Capture d'écran ou vidéo</label>
           <div id="edit-media-current" style="display:none;margin-bottom:8px;">
             <span id="edit-media-label" style="font-size:12px;color:#888;">Fichier actuel conservé</span>
@@ -567,6 +575,9 @@
     var editTitleWarningShown = false;
     var editSelectedFile = null; // nouveau fichier sélectionné en mode édition
     var editRemoveMedia = false; // true = l'utilisateur veut retirer le media existant
+    // Documents en mode édition
+    var editExistingDocs = []; // [{ id, name, url, kept: bool }] docs déjà sur le ticket
+    var editNewDocs = []; // [{ id, file, name, size, type, status, url? }]
 
     function validateTitle(titleText) {
       var t = titleText.trim();
@@ -781,6 +792,23 @@
           handleFile(input);
         }
       });
+
+      var eddz = document.getElementById('edit-docs-drop-zone');
+      if (eddz) {
+        eddz.addEventListener('dragover', function(e) { e.preventDefault(); eddz.style.borderColor = '#6c63ff'; });
+        eddz.addEventListener('dragleave', function() { eddz.style.borderColor = '#333'; });
+        eddz.addEventListener('drop', function(e) {
+          e.preventDefault(); eddz.style.borderColor = '#333';
+          var files = e.dataTransfer.files;
+          if (files && files.length) {
+            var input = document.getElementById('edit-documents');
+            var dt = new DataTransfer();
+            for (var i = 0; i < files.length; i++) dt.items.add(files[i]);
+            input.files = dt.files;
+            handleEditDocs(input);
+          }
+        });
+      }
 
       var ddz = document.getElementById('docs-drop-zone');
       if (ddz) {
@@ -1176,6 +1204,18 @@
       var contentEl = document.getElementById('detail-content');
       var html = '';
 
+      if (parsed.documents && parsed.documents.length > 0) {
+        html += '<div style="margin-bottom:12px;display:flex;flex-direction:column;gap:6px;">';
+        for (var dd = 0; dd < parsed.documents.length; dd++) {
+          var doc = parsed.documents[dd];
+          var url = proxyFileUrl(doc.url);
+          html += '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;background:#111;border:1px solid #2a2a2a;border-radius:6px;padding:8px 10px;font-size:12px;color:#ddd;text-decoration:none;">' +
+            '<span>📎</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(doc.name) + '</span>' +
+            '<span style="color:#6c63ff;font-size:11px;">Ouvrir</span></a>';
+        }
+        html += '</div>';
+      }
+
       if (parsed.checkboxes.length > 0) {
         html += '<ul class="detail-checkbox-list">';
         for (var i = 0; i < parsed.checkboxes.length; i++) {
@@ -1216,10 +1256,24 @@
       var mediaType = 'image'; // 'image' ou 'video'
       var checkboxes = [];
       var textLines = [];
+      var documents = []; // [{ name, url }]
 
       var lines = desc.split('\n');
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
+
+        // Détecte les liens documents : "- 📎 [name](url)" ou "- [name](url)" si URL linear
+        var docMatch = line.match(/^- (?:📎\s*)?\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/);
+        if (docMatch) {
+          var dName = docMatch[1];
+          var dUrl = docMatch[2];
+          // Ignorer si ce n'est pas une URL d'upload Linear
+          if (dUrl.indexOf('uploads.linear.app') !== -1) {
+            documents.push({ name: dName, url: dUrl });
+            continue;
+          }
+        }
+
         // Détecte ![alt](url) pour les images ET [text](url) pour les vidéos (Linear reformate les vidéos)
         var imgMatch = line.match(/^!\[(.*?)\]\((.*?)\)$/);
         if (imgMatch) {
@@ -1244,7 +1298,7 @@
         if (line.trim() !== '') textLines.push(line);
       }
 
-      return { mediaUrl: mediaUrl, mediaType: mediaType, checkboxes: checkboxes, text: textLines.join('\n').trim() };
+      return { mediaUrl: mediaUrl, mediaType: mediaType, checkboxes: checkboxes, text: textLines.join('\n').trim(), documents: documents };
     }
 
     function closeDetail(event) {
@@ -1306,6 +1360,22 @@
       }
       document.getElementById('edit-type').value = typeVal;
 
+      // Init documents : reprendre ceux existants
+      editExistingDocs = [];
+      editNewDocs = [];
+      if (parsed.documents && parsed.documents.length) {
+        for (var dk = 0; dk < parsed.documents.length; dk++) {
+          editExistingDocs.push({
+            id: ++docIdCounter,
+            name: parsed.documents[dk].name,
+            url: parsed.documents[dk].url,
+            kept: true
+          });
+        }
+      }
+      renderEditDocs();
+      document.getElementById('edit-documents').value = '';
+
       // Reset état fichier
       editSelectedFile = null;
       editRemoveMedia = false;
@@ -1340,6 +1410,10 @@
       document.getElementById('edit-error').style.display = 'none';
       editSelectedFile = null;
       editRemoveMedia = false;
+      editExistingDocs = [];
+      editNewDocs = [];
+      var list = document.getElementById('edit-docs-list');
+      if (list) list.innerHTML = '';
     }
 
     function handleEditFile(input) {
@@ -1380,6 +1454,79 @@
           document.getElementById('edit-media-current').style.display = 'block';
         }
       }
+    }
+
+    // --- Documents en mode édition ---
+    function renderEditDocs() {
+      var list = document.getElementById('edit-docs-list');
+      if (!list) return;
+      list.innerHTML = '';
+      // Existants conservés
+      for (var i = 0; i < editExistingDocs.length; i++) {
+        var d = editExistingDocs[i];
+        if (!d.kept) continue;
+        var it = document.createElement('div');
+        it.className = 'doc-item';
+        it.innerHTML =
+          '<span class="doc-icon">📎</span>' +
+          '<span class="doc-name"></span>' +
+          '<span class="doc-status ok">Existant</span>' +
+          '<button type="button" title="Retirer">&#10005;</button>';
+        it.querySelector('.doc-name').textContent = d.name;
+        (function(id) {
+          it.querySelector('button').onclick = function() { removeEditExistingDoc(id); };
+        })(d.id);
+        list.appendChild(it);
+      }
+      // Nouveaux
+      for (var j = 0; j < editNewDocs.length; j++) {
+        var n = editNewDocs[j];
+        var it2 = document.createElement('div');
+        it2.className = 'doc-item';
+        var cls = n.status === 'done' ? 'ok' : (n.status === 'error' ? 'err' : '');
+        var st = n.status === 'done' ? 'Uploadé' : (n.status === 'error' ? (n.errorMsg || 'Erreur') : (n.status === 'uploading' ? 'Upload...' : 'Nouveau'));
+        it2.innerHTML =
+          '<span class="doc-icon">📎</span>' +
+          '<span class="doc-name"></span>' +
+          '<span class="doc-size">' + formatSize(n.size) + '</span>' +
+          '<span class="doc-status ' + cls + '">' + st + '</span>' +
+          '<button type="button" title="Retirer">&#10005;</button>';
+        it2.querySelector('.doc-name').textContent = n.name;
+        (function(id) {
+          it2.querySelector('button').onclick = function() { removeEditNewDoc(id); };
+        })(n.id);
+        list.appendChild(it2);
+      }
+    }
+
+    function handleEditDocs(input) {
+      var files = input.files;
+      if (!files || files.length === 0) return;
+      var totalKept = editExistingDocs.filter(function(d){ return d.kept; }).length + editNewDocs.length;
+      for (var i = 0; i < files.length; i++) {
+        if (totalKept >= MAX_DOCS) { alert('Maximum ' + MAX_DOCS + ' documents.'); break; }
+        var f = files[i];
+        if (f.size > MAX_FILE_SIZE) { alert('Document "' + f.name + '" trop volumineux (max 100 MB).'); continue; }
+        editNewDocs.push({
+          id: ++docIdCounter, file: f, name: f.name, size: f.size,
+          type: f.type || 'application/octet-stream', status: 'pending', url: null
+        });
+        totalKept++;
+      }
+      input.value = '';
+      renderEditDocs();
+    }
+
+    function removeEditExistingDoc(id) {
+      for (var i = 0; i < editExistingDocs.length; i++) {
+        if (editExistingDocs[i].id === id) { editExistingDocs[i].kept = false; break; }
+      }
+      renderEditDocs();
+    }
+
+    function removeEditNewDoc(id) {
+      editNewDocs = editNewDocs.filter(function(d) { return d.id !== id; });
+      renderEditDocs();
     }
 
     function removeEditFile() {
@@ -1453,7 +1600,7 @@
       btn.textContent = 'Enregistrement...';
 
       try {
-        // Étape 1 : upload du nouveau fichier si sélectionné
+        // Étape 1a : upload du nouveau fichier screenshot/vidéo si sélectionné
         var newAssetUrl = null;
         var newAssetType = null;
         if (editSelectedFile) {
@@ -1475,24 +1622,75 @@
           btn.textContent = 'Enregistrement...';
         }
 
-        // Étape 2 : reconstituer la description avec le media markdown
+        // Étape 1b : upload des nouveaux documents
+        for (var ei = 0; ei < editNewDocs.length; ei++) {
+          var doc = editNewDocs[ei];
+          if (doc.status === 'done') continue; // déjà uploadé
+          btn.textContent = 'Upload document ' + (ei + 1) + '/' + editNewDocs.length + '...';
+          doc.status = 'uploading'; renderEditDocs();
+          try {
+            var docRes = await fetch('/upload-file', {
+              method: 'POST',
+              headers: {
+                'X-App-Password': authedPassword,
+                'X-File-Type': doc.type || 'application/octet-stream',
+                'X-File-Name': doc.name,
+                'X-File-Kind': 'document',
+              },
+              body: doc.file,
+            });
+            if (docRes.status === 413) throw new Error('Document trop volumineux');
+            var docData = await docRes.json();
+            if (!docRes.ok) throw new Error(docData.error || 'Erreur upload document');
+            doc.url = docData.assetUrl;
+            doc.status = 'done';
+          } catch (e) {
+            doc.status = 'error'; doc.errorMsg = e.message; renderEditDocs();
+            throw new Error('Upload du document "' + doc.name + '" échoué : ' + e.message);
+          }
+          renderEditDocs();
+        }
+        btn.textContent = 'Enregistrement...';
+
+        // Étape 2 : reconstituer la description : [docs] + [media] + [text]
         var desc = t.description || '';
         var parsed = parseDescription(desc);
         var fullDescription = '';
 
+        // Documents : conservés + nouveaux
+        var finalDocs = [];
+        for (var ed = 0; ed < editExistingDocs.length; ed++) {
+          if (editExistingDocs[ed].kept) {
+            finalDocs.push({ name: editExistingDocs[ed].name, url: editExistingDocs[ed].url });
+          }
+        }
+        for (var nd = 0; nd < editNewDocs.length; nd++) {
+          if (editNewDocs[nd].url) {
+            finalDocs.push({ name: editNewDocs[nd].name, url: editNewDocs[nd].url });
+          }
+        }
+        if (finalDocs.length > 0) {
+          var docLines = [];
+          for (var fd = 0; fd < finalDocs.length; fd++) {
+            var safeName = String(finalDocs[fd].name).replace(/[\[\]]/g, '').substring(0, 200);
+            docLines.push('- 📎 [' + safeName + '](' + finalDocs[fd].url + ')');
+          }
+          fullDescription += docLines.join('\n') + '\n\n';
+        }
+
         if (newAssetUrl) {
           // Nouveau fichier uploadé → nouveau markdown
           if (newAssetType && newAssetType.startsWith('video/')) {
-            fullDescription = '![video](' + newAssetUrl + ')\n\n';
+            fullDescription += '![video](' + newAssetUrl + ')\n\n';
           } else {
-            fullDescription = '![screenshot](' + newAssetUrl + ')\n\n';
+            fullDescription += '![screenshot](' + newAssetUrl + ')\n\n';
           }
         } else if (!editRemoveMedia && parsed.mediaUrl) {
           // Conserver le media existant
           var lines = desc.split('\n');
           for (var i = 0; i < lines.length; i++) {
             if (lines[i].match(/^!\[.*?\]\(.*?\)$/) || lines[i].match(/^\[.*?\]\(https:\/\/uploads\.linear\.app\/.*?\)$/)) {
-              fullDescription = lines[i] + '\n\n';
+              fullDescription += lines[i] + '\n\n';
               break;
             }
           }
@@ -1534,7 +1732,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.27</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.28</div>
 </body>
 </html>
 
