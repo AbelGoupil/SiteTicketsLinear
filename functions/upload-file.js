@@ -2,13 +2,15 @@
 // Reçoit le fichier en binary body (pas de base64)
 // Retourne l'assetUrl à passer ensuite à create-ticket
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+// Types explicitement autorisés pour aperçu (screenshot / vidéo)
 const ALLOWED_TYPES = [
   // Images
   'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp',
   // Vidéos
   'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo',
 ];
+// Flag depuis header X-File-Kind=document pour permettre tous types (PDF, docx, xlsx, zip...)
 
 export async function onRequestPost(context) {
   const { env } = context;
@@ -27,8 +29,16 @@ export async function onRequestPost(context) {
     // --- Récupérer les métadonnées depuis les headers ---
     const contentType = context.request.headers.get('X-File-Type');
     const filename = context.request.headers.get('X-File-Name');
+    const fileKind = context.request.headers.get('X-File-Kind'); // 'document' = tous types, sinon = image/vidéo seulement
 
-    if (!contentType || !ALLOWED_TYPES.includes(contentType)) {
+    if (!contentType) {
+      return new Response(
+        JSON.stringify({ error: 'Type de fichier manquant.' }),
+        { status: 400, headers }
+      );
+    }
+
+    if (fileKind !== 'document' && !ALLOWED_TYPES.includes(contentType)) {
       return new Response(
         JSON.stringify({ error: `Type de fichier non autorisé : ${contentType}. Types acceptés : ${ALLOWED_TYPES.join(', ')}` }),
         { status: 400, headers }
@@ -55,7 +65,7 @@ export async function onRequestPost(context) {
 
     if (fileBytes.length > MAX_FILE_SIZE) {
       return new Response(
-        JSON.stringify({ error: `Fichier trop volumineux (${(fileBytes.length / 1024 / 1024).toFixed(1)} MB). Taille max : 100 MB.` }),
+        JSON.stringify({ error: `Fichier trop volumineux (${(fileBytes.length / 1024 / 1024).toFixed(1)}MB). Max : 50MB.` }),
         { status: 400, headers }
       );
     }
