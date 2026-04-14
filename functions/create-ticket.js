@@ -18,7 +18,7 @@ export async function onRequestPost(context) {
     }
 
     const body = await context.request.json();
-    const { password, title, description, priority, assetUrl, assetType, projectId, ticketType } = body;
+    const { password, title, description, priority, assetUrl, projectId, ticketType, documents } = body;
 
     // --- Auth check ---
     if (!password || password !== env.APP_PASSWORD) {
@@ -96,8 +96,37 @@ export async function onRequestPost(context) {
           { status: 400, headers }
         );
       }
-      const altTag = (assetType && assetType.startsWith('video/')) ? 'video' : 'screenshot';
-      attachmentMarkdown = `![${altTag}](${assetUrl})\n\n`;
+      attachmentMarkdown = `![attachment](${assetUrl})\n\n`;
+    }
+
+    // --- Documents joints (liste, liens markdown) ---
+    let documentsMarkdown = '';
+    if (Array.isArray(documents) && documents.length > 0) {
+      if (documents.length > 20) {
+        return new Response(
+          JSON.stringify({ error: 'Trop de documents joints (max 20).' }),
+          { status: 400, headers }
+        );
+      }
+      const lines = [];
+      for (const doc of documents) {
+        if (!doc || typeof doc.url !== 'string' || typeof doc.name !== 'string') {
+          return new Response(
+            JSON.stringify({ error: 'Document invalide (url ou name manquant).' }),
+            { status: 400, headers }
+          );
+        }
+        if (!doc.url.startsWith('https://')) {
+          return new Response(
+            JSON.stringify({ error: 'URL de document invalide.' }),
+            { status: 400, headers }
+          );
+        }
+        // Échapper les crochets pour éviter de casser le markdown
+        const safeName = doc.name.replace(/[\[\]]/g, '').substring(0, 200);
+        lines.push(`- 📎 [${safeName}](${doc.url})`);
+      }
+      documentsMarkdown = lines.join('\n') + '\n\n';
     }
 
     // --- Validation projectId ---
@@ -118,7 +147,7 @@ export async function onRequestPost(context) {
     // --- Créer le ticket via l'API Linear ---
     const TEAM_ID = env.LINEAR_TEAM_ID || '026fd940-3b73-4990-b491-3ba49e5825dd';
     const PROJECT_ID = projectId;
-    const BACKLOG_STATE_ID = env.LINEAR_BACKLOG_STATE_ID || 'e27cf1cb-4c2c-47d1-848b-5205c8dbe4fb';
+    const TRIAGE_STATE_ID = env.LINEAR_TRIAGE_STATE_ID || '1a47d0a9-c3e9-4dd1-a9d7-e9ac63b099d8';
     const LABEL_VISU_CLIENT = env.LINEAR_LABEL_VISU || '0bcea0c2-e93b-47b4-aae2-b5ba4fd0f25a';
     const LABEL_RETOUR_CLIENT = env.LINEAR_LABEL_RETOUR || '51babe56-93dc-4dbf-83f9-4cc4a836b503';
 
@@ -136,13 +165,13 @@ export async function onRequestPost(context) {
       }
     `;
 
-    const finalDescription = attachmentMarkdown + `- [ ] ${description.trim()}`;
+    const finalDescription = documentsMarkdown + attachmentMarkdown + `- [ ] ${description.trim()}`;
 
     const variables = {
       input: {
         teamId: TEAM_ID,
         projectId: PROJECT_ID,
-        stateId: BACKLOG_STATE_ID,
+        stateId: TRIAGE_STATE_ID,
         title: title.trim(),
         description: finalDescription,
         priority: priority,
@@ -196,4 +225,3 @@ export async function onRequestPost(context) {
     );
   }
 }
-
