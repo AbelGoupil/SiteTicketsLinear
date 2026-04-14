@@ -219,10 +219,11 @@
       font-size: 9px; font-weight: 600; padding: 1px 6px;
       border-radius: 3px; text-transform: uppercase; margin-left: auto;
     }
-    .priority-0 { background: #5c1515; color: #ff6b6b; }
-    .priority-1 { background: #5c3a15; color: #f2994a; }
-    .priority-2 { background: #3a3a15; color: #f2c94c; }
-    .priority-3 { background: #1a2e1a; color: #6fcf97; }
+    .priority-0 { background: #2a2a2a; color: #888; }
+    .priority-1 { background: #5c1515; color: #ff6b6b; }
+    .priority-2 { background: #5c3a15; color: #f2994a; }
+    .priority-3 { background: #3a3a15; color: #f2c94c; }
+    .priority-4 { background: #1a2e1a; color: #6fcf97; }
 
     .ticket-title-card {
       font-size: 13px; font-weight: 500; color: #e0e0e0;
@@ -400,10 +401,11 @@
         <div class="field">
           <label for="priority">Priorité</label>
           <select id="priority">
-            <option value="3">Low</option>
-            <option value="2" selected>Medium</option>
-            <option value="1">High</option>
-            <option value="0">Urgent</option>
+            <option value="0">Aucune</option>
+            <option value="4">Low</option>
+            <option value="3" selected>Medium</option>
+            <option value="2">High</option>
+            <option value="1">Urgent</option>
           </select>
         </div>
         <button id="submit-btn" onclick="createTicket()">Créer le ticket</button>
@@ -491,10 +493,11 @@
         <div class="edit-field">
           <label>Priorité</label>
           <select id="edit-priority">
-            <option value="3">Low</option>
-            <option value="2">Medium</option>
-            <option value="1">High</option>
-            <option value="0">Urgent</option>
+            <option value="0">Aucune</option>
+            <option value="4">Low</option>
+            <option value="3">Medium</option>
+            <option value="2">High</option>
+            <option value="1">Urgent</option>
           </select>
         </div>
         <div class="detail-actions">
@@ -513,7 +516,7 @@
     var currentProject = null;
     var editingTicketIndex = null; // index du ticket en cours d'édition
 
-    var PRIORITY_LABELS = { 0: 'Urgent', 1: 'High', 2: 'Medium', 3: 'Low', 4: 'None' };
+    var PRIORITY_LABELS = { 0: 'Aucune', 1: 'Urgent', 2: 'High', 3: 'Medium', 4: 'Low' };
     var TYPE_LABEL_NAMES = ['Bug', 'Improvement', 'Idée pour plus tard'];
     var MAX_TITLE_LENGTH = 200;
     var MAX_DESCRIPTION_LENGTH = 5000;
@@ -888,9 +891,12 @@
           grouped[col].push({ ticket: t, globalIndex: i });
         }
 
-        // Trier chaque colonne par priorité (0=Urgent, 1=High, 2=Medium, 3=Low)
+        // Trier chaque colonne par priorité Linear (1=Urgent, 2=High, 3=Medium, 4=Low, 0=Aucune en dernier)
+        var PRIO_ORDER = { 1: 0, 2: 1, 3: 2, 4: 3, 0: 4 };
         for (var c = 0; c < COLUMNS.length; c++) {
-          grouped[COLUMNS[c].key].sort(function(a, b) { return a.ticket.priority - b.ticket.priority; });
+          grouped[COLUMNS[c].key].sort(function(a, b) {
+            return (PRIO_ORDER[a.ticket.priority] || 99) - (PRIO_ORDER[b.ticket.priority] || 99);
+          });
         }
 
         for (var c = 0; c < COLUMNS.length; c++) {
@@ -1374,7 +1380,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.25</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.26</div>
 </body>
 </html>
 
