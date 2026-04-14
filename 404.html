@@ -370,7 +370,7 @@
     <div class="board" id="board"></div>
   </div>
 
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.20</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.21</div>
 
   <!-- Success popup -->
   <div class="overlay" id="success-overlay">
@@ -387,7 +387,7 @@
     <div class="detail-box" id="detail-box">
       <button class="detail-close" onclick="closeDetailDirect()">&#10005;</button>
       <div class="detail-header">
-        <div class="detail-id" id="detail-id"></div>
+        <div class="detail-id"><span id="detail-id"></span> <a id="detail-linear-link" href="#" target="_blank" rel="noopener" title="Ouvrir dans Linear" style="color:#555;text-decoration:none;font-size:12px;vertical-align:middle;">&#8599;</a></div>
         <div class="detail-title" id="detail-title"></div>
         <div class="detail-priority-badge" id="detail-priority"></div>
       </div>
@@ -792,6 +792,7 @@
       if (!t) return;
 
       document.getElementById('detail-id').textContent = t.identifier;
+      document.getElementById('detail-linear-link').href = t.url || '#';
       document.getElementById('detail-title').textContent = t.title;
 
       var prioEl = document.getElementById('detail-priority');
