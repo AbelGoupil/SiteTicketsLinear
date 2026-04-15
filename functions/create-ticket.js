@@ -57,7 +57,7 @@ export async function onRequestPost(context) {
       );
     }
 
-    if (typeof priority !== 'number' || ![0, 1, 2, 3].includes(priority)) {
+    if (typeof priority !== 'number' || ![0, 1, 2, 3, 4].includes(priority)) {
       return new Response(
         JSON.stringify({ error: `Priorité invalide. Valeurs acceptées : 0 (Urgent), 1 (High), 2 (Medium), 3 (Low).` }),
         { status: 400, headers }
