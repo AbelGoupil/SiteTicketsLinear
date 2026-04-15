@@ -147,9 +147,10 @@ export async function onRequestPost(context) {
     // --- Créer le ticket via l'API Linear ---
     const TEAM_ID = env.LINEAR_TEAM_ID || '026fd940-3b73-4990-b491-3ba49e5825dd';
     const PROJECT_ID = projectId;
-    const TRIAGE_STATE_ID = env.LINEAR_TRIAGE_STATE_ID || '1a47d0a9-c3e9-4dd1-a9d7-e9ac63b099d8';
-    const LABEL_VISU_CLIENT = env.LINEAR_LABEL_VISU || '0bcea0c2-e93b-47b4-aae2-b5ba4fd0f25a';
-    const LABEL_RETOUR_CLIENT = env.LINEAR_LABEL_RETOUR || '51babe56-93dc-4dbf-83f9-4cc4a836b503';
+    // Depuis 2026-04-14 : statut par défaut = Backlog (pas Triage)
+    const BACKLOG_STATE_ID = env.LINEAR_BACKLOG_STATE_ID || 'e27cf1cb-4c2c-47d1-848b-5205c8dbe4fb';
+    const LABEL_VISU_CLIENT = env.LINEAR_LABEL_VISU_CLIENT || env.LINEAR_LABEL_VISU || '0bcea0c2-e93b-47b4-aae2-b5ba4fd0f25a';
+    const LABEL_RETOUR_CLIENT = env.LINEAR_LABEL_RETOUR_CLIENT || env.LINEAR_LABEL_RETOUR || '51babe56-93dc-4dbf-83f9-4cc4a836b503';
 
     const mutation = `
       mutation CreateIssue($input: IssueCreateInput!) {
@@ -171,7 +172,7 @@ export async function onRequestPost(context) {
       input: {
         teamId: TEAM_ID,
         projectId: PROJECT_ID,
-        stateId: TRIAGE_STATE_ID,
+        stateId: BACKLOG_STATE_ID,
         title: title.trim(),
         description: finalDescription,
         priority: priority,
@@ -195,9 +196,9 @@ export async function onRequestPost(context) {
       );
     }
 
-    if (!linearData.data && linearData.data.issueCreate && linearData.data.issueCreate.success) {
+    if (!linearData.data || !linearData.data.issueCreate || !linearData.data.issueCreate.success) {
       return new Response(
-        JSON.stringify({ error: 'Linear a refusé la création du ticket. Réponse : ' + JSON.stringify(linearData.data) }),
+        JSON.stringify({ error: 'Linear a refusé la création du ticket. Réponse : ' + JSON.stringify(linearData) }),
         { status: 502, headers }
       );
     }
