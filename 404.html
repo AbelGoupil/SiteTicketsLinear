@@ -932,7 +932,7 @@
             headers: {
               'X-App-Password': authedPassword,
               'X-File-Type': selectedFile.type,
-              'X-File-Name': selectedFile.name,
+              'X-File-Name': encodeURIComponent(selectedFile.name),
             },
             body: selectedFile,
           });
@@ -955,7 +955,7 @@
               headers: {
                 'X-App-Password': authedPassword,
                 'X-File-Type': doc.type || 'application/octet-stream',
-                'X-File-Name': doc.name,
+                'X-File-Name': encodeURIComponent(doc.name),
                 'X-File-Kind': 'document',
               },
               body: doc.file,
@@ -1675,7 +1675,7 @@
             headers: {
               'X-App-Password': authedPassword,
               'X-File-Type': editSelectedFile.type,
-              'X-File-Name': editSelectedFile.name,
+              'X-File-Name': encodeURIComponent(editSelectedFile.name),
             },
             body: editSelectedFile,
           });
@@ -1699,7 +1699,7 @@
               headers: {
                 'X-App-Password': authedPassword,
                 'X-File-Type': doc.type || 'application/octet-stream',
-                'X-File-Name': doc.name,
+                'X-File-Name': encodeURIComponent(doc.name),
                 'X-File-Kind': 'document',
               },
               body: doc.file,
@@ -1797,7 +1797,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.29</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.30</div>
 </body>
 </html>
 
