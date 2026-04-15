@@ -28,7 +28,11 @@ export async function onRequestPost(context) {
 
     // --- Récupérer les métadonnées depuis les headers ---
     const contentType = context.request.headers.get('X-File-Type');
-    const filename = context.request.headers.get('X-File-Name');
+    const rawFilename = context.request.headers.get('X-File-Name');
+    // Le client encode le nom de fichier (encodeURIComponent) pour supporter les caractères non-ASCII
+    // dans les headers HTTP. On décode ici pour avoir un nom propre dans Linear.
+    let filename = rawFilename;
+    try { filename = rawFilename ? decodeURIComponent(rawFilename) : rawFilename; } catch (_) { filename = rawFilename; }
     const fileKind = context.request.headers.get('X-File-Kind'); // 'document' = tous types, sinon = image/vidéo seulement
 
     if (!contentType) {
