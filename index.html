@@ -1105,7 +1105,7 @@
                 '<div class="card-top">' +
                   '<span class="ticket-id">' + escapeHtml(t.identifier) + '</span>' +
                   getTypeLabelHtml(t) +
-                  '<span class="ticket-priority priority-' + t.priority + '">' + (PRIORITY_LABELS[t.priority] || '?') + '</span>' +
+                  (t.priority && t.priority !== 0 ? '<span class="ticket-priority priority-' + t.priority + '">' + (PRIORITY_LABELS[t.priority] || '?') + '</span>' : '') +
                 '</div>' +
                 '<div class="ticket-title-card">' + escapeHtml(t.title) + '</div>' +
               '</div>';
@@ -1172,8 +1172,14 @@
       document.getElementById('detail-title').textContent = t.title;
 
       var prioEl = document.getElementById('detail-priority');
-      prioEl.textContent = PRIORITY_LABELS[t.priority] || '?';
-      prioEl.className = 'detail-priority-badge priority-' + t.priority;
+      if (t.priority && t.priority !== 0) {
+        prioEl.textContent = PRIORITY_LABELS[t.priority] || '?';
+        prioEl.className = 'detail-priority-badge priority-' + t.priority;
+        prioEl.style.display = '';
+      } else {
+        prioEl.textContent = '';
+        prioEl.style.display = 'none';
+      }
 
       var desc = t.description || '';
       var parsed = parseDescription(desc);
@@ -1797,7 +1803,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.30</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.31</div>
 </body>
 </html>
 
