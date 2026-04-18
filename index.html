@@ -1082,7 +1082,9 @@
         var PRIO_ORDER = { 1: 0, 2: 1, 3: 2, 4: 3, 0: 4 };
         for (var c = 0; c < COLUMNS.length; c++) {
           grouped[COLUMNS[c].key].sort(function(a, b) {
-            return (PRIO_ORDER[a.ticket.priority] || 99) - (PRIO_ORDER[b.ticket.priority] || 99);
+            var pa = PRIO_ORDER[a.ticket.priority] !== undefined ? PRIO_ORDER[a.ticket.priority] : 99;
+            var pb = PRIO_ORDER[b.ticket.priority] !== undefined ? PRIO_ORDER[b.ticket.priority] : 99;
+            return pa - pb;
           });
         }
 
@@ -1803,7 +1805,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.31</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.32</div>
 </body>
 </html>
 
