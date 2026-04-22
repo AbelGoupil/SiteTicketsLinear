@@ -441,10 +441,12 @@
       text-transform: none; letter-spacing: 0;
     }
     .plan-metrics-info {
-      color: #888; font-size: 16px; cursor: help;
-      line-height: 1; user-select: none;
+      color: #888; cursor: help;
+      line-height: 0; user-select: none;
+      display: inline-flex; align-items: center;
     }
     .plan-metrics-info:hover { color: #6c63ff; }
+    .plan-metrics-info svg { display: block; }
 
     .plan-metrics-row {
       display: flex; align-items: flex-start; gap: 16px;
@@ -820,9 +822,9 @@
         +       '<span>Forfait <span class="plan-name-strong">' + escapeHtml(plan.name) + '</span> '
         +       '<span class="plan-price">· ' + escapeHtml(plan.price) + '</span></span>'
         +     '</div>'
-        +     '<span class="plan-arrow" id="plan-arrow">&#9660;</span>'
+        +     '<span class="plan-arrow collapsed" id="plan-arrow">&#9660;</span>'
         +   '</div>'
-        +   '<div class="plan-body" id="plan-body">'
+        +   '<div class="plan-body collapsed" id="plan-body">'
         +     '<div class="plan-section-label">Inclus dans votre maintenance mensuelle</div>'
         +     '<ul class="plan-list">' + inHtml + '</ul>'
         +     outBlock
@@ -1029,7 +1031,9 @@
         +     '<div class="plan-metrics-title">Cycle en cours '
         +       '<span class="plan-metrics-cycle">(' + cycleLabel + ')</span>'
         +     '</div>'
-        +     '<span class="plan-metrics-info" title="' + barTip.replace(/"/g, '&quot;') + '">&#9432;</span>'
+        +     '<span class="plan-metrics-info" title="' + barTip.replace(/"/g, '&quot;') + '" aria-label="Barème indicatif">'
+        +       '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+        +     '</span>'
         +   '</div>'
         +   '<div class="plan-metrics-row">'
         +     '<div class="plan-bar-wrap" title="' + barTip.replace(/"/g, '&quot;') + '">'
@@ -2329,7 +2333,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.37</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.38</div>
 </body>
 </html>
 
