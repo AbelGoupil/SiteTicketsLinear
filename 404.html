@@ -973,42 +973,48 @@
       return false;
     }
 
-    // Calcule les métriques budget à partir d'une liste de tickets du cycle
-    // Ne compte QUE les tickets non-bug (bugs = inclus sans limite).
-    // Retourne : {next: {...}, inProgress: {...}, total: €, unestimated: n, bugs: n}
-    function computePlanMetrics(cycleTickets) {
-      var NEXT_COLS = ['next'];
-      var INPROGRESS_COLS = ['release', 'dev', 'qa', 'done'];
+    // Calcule les métriques budget à partir de tous les tickets actuels.
+    // Règles :
+    //  - "Prochaine version (retenu)" = colonne Next Release
+    //  - "Version en cours" = Planned for Release + Dev in Progress + In QA + Ready for deployment
+    //  - "Deployed on Prod" est exclu du budget (déjà livré)
+    //  - Les bugs sont inclus dans le forfait : on les compte dans leur bucket mais à 0€
+    // Retourne : {next: {...}, inProgress: {...}, total: €, unestimated: n}
+    function computePlanMetrics(tickets) {
+      var INPROGRESS_STATES = [
+        'Planned for Release',
+        'Dev in Progress',
+        'In QA',
+        'Ready for deployment'
+      ];
 
       function newBucket() {
-        return { total: 0, sizes: { XS: 0, S: 0, M: 0, L: 0, XL: 0 }, unestimated: 0, count: 0 };
+        return { total: 0, sizes: { XS: 0, S: 0, M: 0, L: 0, XL: 0 }, unestimated: 0, bugs: 0, count: 0 };
       }
       var next = newBucket();
       var inProg = newBucket();
-      var bugs = 0;
       var unestimatedGlobal = 0;
 
-      for (var i = 0; i < cycleTickets.length; i++) {
-        var t = cycleTickets[i];
+      if (!tickets) return { next: next, inProgress: inProg, total: 0, unestimated: 0 };
+
+      for (var i = 0; i < tickets.length; i++) {
+        var t = tickets[i];
         var stateName = (t.state && t.state.name) ? t.state.name : '';
-        var colKey = STATUS_TO_COLUMN[stateName];
-        if (!colKey) continue; // ticket dans un statut non mappé (Duplicate/Canceled) → ignoré
+
+        var bucket = null;
+        if (stateName === 'Next Release') bucket = next;
+        else if (INPROGRESS_STATES.indexOf(stateName) !== -1) bucket = inProg;
+        else continue; // backlog / deployed / duplicate / canceled → hors budget
+
+        bucket.count++;
 
         if (isBugTicket(t)) {
-          // Bugs : on les compte séparément, pas dans la barre budget
-          if (INPROGRESS_COLS.indexOf(colKey) !== -1 || NEXT_COLS.indexOf(colKey) !== -1) {
-            bugs++;
-          }
+          // Bug : inclus dans le forfait (pas de coût), on le compte pour l'affichage
+          bucket.bugs++;
           continue;
         }
 
         var size = getTicketSize(t);
-        var bucket = null;
-        if (NEXT_COLS.indexOf(colKey) !== -1) bucket = next;
-        else if (INPROGRESS_COLS.indexOf(colKey) !== -1) bucket = inProg;
-        else continue; // backlog ou autre → hors budget
-
-        bucket.count++;
         if (size) {
           bucket.sizes[size]++;
           bucket.total += SIZE_PRICES[size] || 0;
@@ -1022,8 +1028,7 @@
         next: next,
         inProgress: inProg,
         total: next.total + inProg.total,
-        unestimated: unestimatedGlobal,
-        bugs: bugs
+        unestimated: unestimatedGlobal
       };
     }
 
@@ -1033,16 +1038,23 @@
       if (!host) return;
       var slug = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
       var cfg = getProjectPlanConfig(slug);
-      if (!cfg || !ticketsData || !ticketsData.length && !Array.isArray(ticketsData)) {
+      if (!cfg || !Array.isArray(ticketsData)) {
         host.style.display = 'none'; host.innerHTML = ''; return;
       }
 
-      var cycle = getCurrentCycle(cfg.cycleResetDay);
-      var cycleTickets = filterTicketsInCycle(ticketsData, cycle);
-      var m = computePlanMetrics(cycleTickets);
+      var m = computePlanMetrics(ticketsData);
       var plan = cfg.plan;
       var cap = plan.cycleBudget || 500;
       var barMax = plan.barMax || (cap * 3);
+
+      // Label du cycle en cours (info seulement — ne filtre plus les tickets)
+      var cycle = getCurrentCycle(cfg.cycleResetDay);
+      function fmtDate(d) {
+        return new Intl.DateTimeFormat('fr-FR', {
+          timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit'
+        }).format(d);
+      }
+      var cycleLabel = fmtDate(cycle.start) + ' → ' + fmtDate(new Date(cycle.end.getTime() - 1));
 
       var total = m.total;
       var pct = Math.min(100, (total / barMax) * 100);
@@ -1055,15 +1067,9 @@
           if (bucket.sizes[sz] > 0) parts.push(bucket.sizes[sz] + ' ' + sz);
         });
         if (bucket.unestimated > 0) parts.push(bucket.unestimated + ' non estimé' + (bucket.unestimated > 1 ? 's' : ''));
+        if (bucket.bugs > 0) parts.push(bucket.bugs + ' bug' + (bucket.bugs > 1 ? 's' : '') + ' (inclus)');
         return parts.length ? parts.join(' · ') : 'aucun';
       }
-
-      function fmtDate(d) {
-        return new Intl.DateTimeFormat('fr-FR', {
-          timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit'
-        }).format(d);
-      }
-      var cycleLabel = fmtDate(cycle.start) + ' → ' + fmtDate(new Date(cycle.end.getTime() - 1));
 
       // Tooltip barème (HTML, rendu via .plan-tooltip)
       var tooltipHtml =
@@ -1080,13 +1086,13 @@
       var warnHtml = '';
       if (m.unestimated > 0) {
         warnHtml = '<div class="plan-warning">&#9888; ' + m.unestimated + ' ticket' + (m.unestimated > 1 ? 's' : '') +
-          ' non estimé' + (m.unestimated > 1 ? 's' : '') + ' dans ce cycle — le budget affiché peut varier.</div>';
+          ' non estimé' + (m.unestimated > 1 ? 's' : '') + ' — le budget affiché peut varier.</div>';
       }
 
       host.innerHTML =
         '<div class="plan-metrics-card">'
         +   '<div class="plan-metrics-header">'
-        +     '<div class="plan-metrics-title">Cycle en cours '
+        +     '<div class="plan-metrics-title">Budget de maintenance '
         +       '<span class="plan-metrics-cycle">(' + cycleLabel + ')</span>'
         +     '</div>'
         +     '<span class="plan-metrics-info" aria-label="Barème indicatif">'
@@ -1123,11 +1129,6 @@
         +       '<span class="plan-detail-label">Version en cours (dev · qualif · livraison)</span>'
         +       '<span class="plan-detail-sizes">' + fmtSizes(m.inProgress) + '</span>'
         +       '<span class="plan-detail-price">' + m.inProgress.total + '€</span>'
-        +     '</div>'
-        +     '<div class="plan-detail-row plan-detail-row--bugs">'
-        +       '<span class="plan-detail-label">Bugs corrigés ce cycle</span>'
-        +       '<span class="plan-detail-sizes">' + m.bugs + ' ticket' + (m.bugs !== 1 ? 's' : '') + '</span>'
-        +       '<span class="plan-detail-price">inclus</span>'
         +     '</div>'
         +   '</div>'
         + '</div>';
@@ -2392,7 +2393,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.39</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.40</div>
 </body>
 </html>
 
