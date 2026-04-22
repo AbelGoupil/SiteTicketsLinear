@@ -422,6 +422,121 @@
     .plan-list.plan-list-out li::before { background: #555; }
     .plan-list.plan-list-out li { color: #999; }
     .plan-list:last-child { margin-bottom: 0; }
+
+    /* --- Plan metrics (cycle budget) --- */
+    .plan-metrics-card {
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 12px; padding: 16px 18px;
+    }
+    .plan-metrics-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .plan-metrics-title {
+      font-size: 13px; font-weight: 600; color: #ddd;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .plan-metrics-cycle {
+      color: #888; font-weight: 500; margin-left: 6px;
+      text-transform: none; letter-spacing: 0;
+    }
+    .plan-metrics-info {
+      color: #888; font-size: 16px; cursor: help;
+      line-height: 1; user-select: none;
+    }
+    .plan-metrics-info:hover { color: #6c63ff; }
+
+    .plan-metrics-row {
+      display: flex; align-items: flex-start; gap: 16px;
+    }
+    .plan-bar-wrap { flex: 1; min-width: 0; }
+    .plan-bar {
+      position: relative; height: 10px; background: #111;
+      border: 1px solid #2a2a2a; border-radius: 999px; overflow: hidden;
+    }
+    .plan-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6c63ff 0%, #6c63ff 33.33%, #ff9f43 33.33%, #ff9f43 100%);
+      background-size: 300% 100%;
+      background-position: 0 0;
+      transition: width 0.4s ease;
+      border-radius: 999px;
+    }
+    .plan-bar-cap {
+      position: absolute; top: -3px; bottom: -3px;
+      width: 2px; background: #fff;
+      box-shadow: 0 0 0 1px #000;
+    }
+    .plan-bar-legend {
+      position: relative; height: 16px; margin-top: 6px;
+      font-size: 10px; color: #888;
+    }
+    .plan-bar-legend > span:nth-child(1) { position: absolute; left: 0; }
+    .plan-bar-legend > span:nth-child(3) { position: absolute; right: 0; }
+    .plan-bar-cap-label {
+      position: absolute; transform: translateX(-50%);
+      color: #ccc; font-weight: 600; white-space: nowrap;
+    }
+
+    .plan-over-box {
+      min-width: 110px; padding: 8px 12px;
+      background: #111; border: 1px solid #2a2a2a;
+      border-radius: 8px; text-align: center;
+      flex-shrink: 0;
+    }
+    .plan-over-box--active {
+      border-color: #ff9f43;
+      background: rgba(255, 159, 67, 0.08);
+    }
+    .plan-over-label {
+      font-size: 10px; color: #888; text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 4px;
+    }
+    .plan-over-value {
+      font-size: 16px; font-weight: 700; color: #e0e0e0;
+    }
+    .plan-over-box--active .plan-over-value { color: #ff9f43; }
+
+    .plan-warning {
+      margin-top: 12px; padding: 8px 12px;
+      background: rgba(255, 159, 67, 0.08);
+      border: 1px solid rgba(255, 159, 67, 0.3);
+      border-radius: 6px;
+      font-size: 12px; color: #ffb76b;
+    }
+
+    .plan-metrics-footer-note {
+      margin-top: 10px; font-size: 11px; color: #777;
+      font-style: italic;
+    }
+
+    .plan-metrics-details {
+      margin-top: 14px; padding-top: 12px;
+      border-top: 1px solid #2a2a2a;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .plan-detail-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px; align-items: center;
+      font-size: 12px;
+    }
+    .plan-detail-label { color: #bbb; }
+    .plan-detail-sizes { color: #888; font-size: 11px; }
+    .plan-detail-price {
+      color: #e0e0e0; font-weight: 600;
+      min-width: 56px; text-align: right;
+    }
+    .plan-detail-row--bugs .plan-detail-price {
+      color: #6c63ff; font-weight: 500; font-size: 11px;
+    }
+
+    @media (max-width: 600px) {
+      .plan-metrics-row { flex-direction: column; gap: 12px; }
+      .plan-over-box { width: 100%; }
+      .plan-detail-row { grid-template-columns: 1fr auto; }
+      .plan-detail-sizes { grid-column: 1 / -1; }
+    }
   </style>
 </head>
 <body>
@@ -518,6 +633,9 @@
 
   <!-- Plan card (forfait maintenance) - injecté dynamiquement via renderPlanCard() -->
   <div id="plan-card-container" style="max-width:600px;margin:0 auto 16px;display:none;"></div>
+
+  <!-- Plan metrics (cycle budget) - injecté dynamiquement via renderPlanMetrics() -->
+  <div id="plan-metrics-container" style="max-width:600px;margin:0 auto 16px;display:none;"></div>
 
   <!-- Board -->
   <div id="tickets-section">
@@ -645,6 +763,8 @@
       essentiel: {
         name: 'Essentiel',
         price: '500€/mois',
+        cycleBudget: 500, // € de changements/cycle (soft cap)
+        barMax: 1500,     // € max affiché sur la barre (3× le cap)
         included: [
           'Corrections de bugs',
           'Ajustements UI (textes, petits layouts)',
@@ -663,16 +783,26 @@
       premium: null   // À définir quand le forfait sera prêt
     };
 
-    // Mapping slug projet → clé forfait (tout en minuscules)
+    // Mapping slug projet → config maintenance (tout en minuscules)
+    // plan : clé de PLANS · cycleResetDay : jour du mois où le cycle repart à 0 (1-28)
+    // cycleBudget : budget € du cycle (aligné sur PLANS[plan].cycleBudget)
     var PROJECT_PLAN_MAP = {
-      myfnbpass: 'essentiel'
+      myfnbpass: { plan: 'essentiel', cycleResetDay: 15 }
     };
+
+    function getProjectPlanConfig(slug) {
+      var cfg = PROJECT_PLAN_MAP[(slug || '').toLowerCase()];
+      if (!cfg) return null;
+      var plan = PLANS[cfg.plan];
+      if (!plan) return null;
+      return { plan: plan, planKey: cfg.plan, cycleResetDay: cfg.cycleResetDay };
+    }
 
     function renderPlanCard(slug) {
       var container = document.getElementById('plan-card-container');
       if (!container) return;
-      var key = PROJECT_PLAN_MAP[(slug || '').toLowerCase()];
-      var plan = key ? PLANS[key] : null;
+      var cfg = getProjectPlanConfig(slug);
+      var plan = cfg ? cfg.plan : null;
       if (!plan) { container.style.display = 'none'; container.innerHTML = ''; return; }
 
       var inHtml = plan.included.map(function(i) { return '<li>' + escapeHtml(i) + '</li>'; }).join('');
@@ -707,6 +837,238 @@
       if (!body || !arrow) return;
       body.classList.toggle('collapsed');
       arrow.classList.toggle('collapsed');
+    }
+
+    // --- Cycle de facturation (reset mensuel au jour cycleResetDay, heure Paris) ---
+    // Retourne {start, end} (Date UTC) du cycle en cours pour ce projet.
+    function getCurrentCycle(cycleResetDay) {
+      var d = cycleResetDay || 1;
+      // "Maintenant" en heure Paris (timezone Europe/Paris)
+      var now = new Date();
+      var parisParts = new Intl.DateTimeFormat('fr-FR', {
+        timeZone: 'Europe/Paris',
+        year: 'numeric', month: '2-digit', day: '2-digit'
+      }).formatToParts(now);
+      var year = parseInt(parisParts.find(function(p){return p.type==='year';}).value, 10);
+      var month = parseInt(parisParts.find(function(p){return p.type==='month';}).value, 10);
+      var day = parseInt(parisParts.find(function(p){return p.type==='day';}).value, 10);
+
+      // Si on est avant le jour de reset → le cycle a commencé le mois précédent
+      // Ex: reset=15, aujourd'hui=12 mai → cycle = 15 avril → 14 mai 23:59
+      var startYear, startMonth;
+      if (day >= d) {
+        startYear = year; startMonth = month;
+      } else {
+        startMonth = month - 1;
+        startYear = year;
+        if (startMonth < 1) { startMonth = 12; startYear = year - 1; }
+      }
+      var endYear = startYear, endMonth = startMonth + 1;
+      if (endMonth > 12) { endMonth = 1; endYear = startYear + 1; }
+
+      // Convertir en Date UTC en prenant en compte le décalage Paris (2h été / 1h hiver)
+      // Pour simplicité et justesse : on stocke les dates comme ISO locales et on compare à `now.toISOString()`
+      // Astuce : on construit une Date en UTC puis on retire le décalage Paris
+      function parisDateToUtc(y, m, dd, hh, mm) {
+        // Calculer l'offset Paris pour ce jour précis
+        var probe = new Date(Date.UTC(y, m - 1, dd, hh, mm, 0));
+        var parisStr = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Europe/Paris', hour12: false,
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit'
+        }).format(probe);
+        // parisStr = "MM/DD/YYYY, HH:MM" → on extrait l'heure Paris du probe UTC
+        var pm = parisStr.match(/(\d+)\/(\d+)\/(\d+), (\d+):(\d+)/);
+        var parisHour = parseInt(pm[4], 10);
+        var offsetHours = parisHour - hh; // ex été : Paris=HH, UTC=HH-2 donc offset=+2
+        // Normalisation si changement de jour
+        if (offsetHours > 12) offsetHours -= 24;
+        if (offsetHours < -12) offsetHours += 24;
+        return new Date(Date.UTC(y, m - 1, dd, hh - offsetHours, mm, 0));
+      }
+
+      var start = parisDateToUtc(startYear, startMonth, d, 0, 0);
+      var end = parisDateToUtc(endYear, endMonth, d, 0, 0);
+      return { start: start, end: end };
+    }
+
+    // Filtre les tickets dans le cycle courant (créés pendant le cycle).
+    // Règle : on compte un ticket dans le cycle selon sa date de création.
+    // TODO futur : si besoin, compter selon une date Linear custom (ex: retenu le X).
+    function filterTicketsInCycle(tickets, cycle) {
+      if (!tickets || !cycle) return [];
+      return tickets.filter(function(t) {
+        if (!t.createdAt) return false;
+        var d = new Date(t.createdAt);
+        return d >= cycle.start && d < cycle.end;
+      });
+    }
+
+    // Retourne la taille T-shirt d'un ticket (ou null si non estimé)
+    function getTicketSize(t) {
+      if (t && typeof t.estimate === 'number' && t.estimate > 0) {
+        return ESTIMATE_VALUE_TO_SIZE[t.estimate] || null;
+      }
+      return null;
+    }
+
+    // Retourne true si le ticket a le label "Bug"
+    function isBugTicket(t) {
+      if (!t || !t.labels || !t.labels.nodes) return false;
+      for (var i = 0; i < t.labels.nodes.length; i++) {
+        if (t.labels.nodes[i].name === 'Bug') return true;
+      }
+      return false;
+    }
+
+    // Calcule les métriques budget à partir d'une liste de tickets du cycle
+    // Ne compte QUE les tickets non-bug (bugs = inclus sans limite).
+    // Retourne : {next: {...}, inProgress: {...}, total: €, unestimated: n, bugs: n}
+    function computePlanMetrics(cycleTickets) {
+      var NEXT_COLS = ['next'];
+      var INPROGRESS_COLS = ['release', 'dev', 'qa', 'done'];
+
+      function newBucket() {
+        return { total: 0, sizes: { XS: 0, S: 0, M: 0, L: 0, XL: 0 }, unestimated: 0, count: 0 };
+      }
+      var next = newBucket();
+      var inProg = newBucket();
+      var bugs = 0;
+      var unestimatedGlobal = 0;
+
+      for (var i = 0; i < cycleTickets.length; i++) {
+        var t = cycleTickets[i];
+        var stateName = (t.state && t.state.name) ? t.state.name : '';
+        var colKey = STATUS_TO_COLUMN[stateName];
+        if (!colKey) continue; // ticket dans un statut non mappé (Duplicate/Canceled) → ignoré
+
+        if (isBugTicket(t)) {
+          // Bugs : on les compte séparément, pas dans la barre budget
+          if (INPROGRESS_COLS.indexOf(colKey) !== -1 || NEXT_COLS.indexOf(colKey) !== -1) {
+            bugs++;
+          }
+          continue;
+        }
+
+        var size = getTicketSize(t);
+        var bucket = null;
+        if (NEXT_COLS.indexOf(colKey) !== -1) bucket = next;
+        else if (INPROGRESS_COLS.indexOf(colKey) !== -1) bucket = inProg;
+        else continue; // backlog ou autre → hors budget
+
+        bucket.count++;
+        if (size) {
+          bucket.sizes[size]++;
+          bucket.total += SIZE_PRICES[size] || 0;
+        } else {
+          bucket.unestimated++;
+          unestimatedGlobal++;
+        }
+      }
+
+      return {
+        next: next,
+        inProgress: inProg,
+        total: next.total + inProg.total,
+        unestimated: unestimatedGlobal,
+        bugs: bugs
+      };
+    }
+
+    // Rendu de la barre budget + détails. Appelé après chaque loadTickets().
+    function renderPlanMetrics() {
+      var host = document.getElementById('plan-metrics-container');
+      if (!host) return;
+      var slug = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+      var cfg = getProjectPlanConfig(slug);
+      if (!cfg || !ticketsData || !ticketsData.length && !Array.isArray(ticketsData)) {
+        host.style.display = 'none'; host.innerHTML = ''; return;
+      }
+
+      var cycle = getCurrentCycle(cfg.cycleResetDay);
+      var cycleTickets = filterTicketsInCycle(ticketsData, cycle);
+      var m = computePlanMetrics(cycleTickets);
+      var plan = cfg.plan;
+      var cap = plan.cycleBudget || 500;
+      var barMax = plan.barMax || (cap * 3);
+
+      var total = m.total;
+      var pct = Math.min(100, (total / barMax) * 100);
+      var capPct = (cap / barMax) * 100;
+      var overBudget = Math.max(0, total - cap);
+
+      function fmtSizes(bucket) {
+        var parts = [];
+        ['XS', 'S', 'M', 'L', 'XL'].forEach(function(sz) {
+          if (bucket.sizes[sz] > 0) parts.push(bucket.sizes[sz] + ' ' + sz);
+        });
+        if (bucket.unestimated > 0) parts.push(bucket.unestimated + ' non estimé' + (bucket.unestimated > 1 ? 's' : ''));
+        return parts.length ? parts.join(' · ') : 'aucun';
+      }
+
+      function fmtDate(d) {
+        return new Intl.DateTimeFormat('fr-FR', {
+          timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit'
+        }).format(d);
+      }
+      var cycleLabel = fmtDate(cycle.start) + ' → ' + fmtDate(new Date(cycle.end.getTime() - 1));
+
+      // Tooltip barème
+      var barTip = 'Barème indicatif :\nXS ≈ 50€  ·  S ≈ 200€  ·  M ≈ 400€  ·  L ≈ 800€  ·  XL ≈ 1 200€';
+
+      // Warning tickets non estimés
+      var warnHtml = '';
+      if (m.unestimated > 0) {
+        warnHtml = '<div class="plan-warning">&#9888; ' + m.unestimated + ' ticket' + (m.unestimated > 1 ? 's' : '') +
+          ' non estimé' + (m.unestimated > 1 ? 's' : '') + ' dans ce cycle — le budget affiché peut varier.</div>';
+      }
+
+      host.innerHTML =
+        '<div class="plan-metrics-card">'
+        +   '<div class="plan-metrics-header">'
+        +     '<div class="plan-metrics-title">Cycle en cours '
+        +       '<span class="plan-metrics-cycle">(' + cycleLabel + ')</span>'
+        +     '</div>'
+        +     '<span class="plan-metrics-info" title="' + barTip.replace(/"/g, '&quot;') + '">&#9432;</span>'
+        +   '</div>'
+        +   '<div class="plan-metrics-row">'
+        +     '<div class="plan-bar-wrap" title="' + barTip.replace(/"/g, '&quot;') + '">'
+        +       '<div class="plan-bar">'
+        +         '<div class="plan-bar-fill" style="width:' + pct.toFixed(2) + '%;"></div>'
+        +         '<div class="plan-bar-cap" style="left:' + capPct.toFixed(2) + '%;" title="Soft cap : ' + cap + '€ inclus"></div>'
+        +       '</div>'
+        +       '<div class="plan-bar-legend">'
+        +         '<span>0€</span>'
+        +         '<span class="plan-bar-cap-label" style="left:' + capPct.toFixed(2) + '%;">' + cap + '€ (forfait)</span>'
+        +         '<span>' + barMax + '€</span>'
+        +       '</div>'
+        +     '</div>'
+        +     '<div class="plan-over-box ' + (overBudget > 0 ? 'plan-over-box--active' : '') + '">'
+        +       '<div class="plan-over-label">Hors forfait</div>'
+        +       '<div class="plan-over-value">' + (overBudget > 0 ? '+' + overBudget + '€' : '—') + '</div>'
+        +     '</div>'
+        +   '</div>'
+        +   warnHtml
+        +   '<div class="plan-metrics-footer-note">Facturation au temps réel passé, pas à l\'estimation.</div>'
+        +   '<div class="plan-metrics-details">'
+        +     '<div class="plan-detail-row">'
+        +       '<span class="plan-detail-label">Prochaine version (retenu)</span>'
+        +       '<span class="plan-detail-sizes">' + fmtSizes(m.next) + '</span>'
+        +       '<span class="plan-detail-price">' + m.next.total + '€</span>'
+        +     '</div>'
+        +     '<div class="plan-detail-row">'
+        +       '<span class="plan-detail-label">Version en cours (dev · qualif · livraison)</span>'
+        +       '<span class="plan-detail-sizes">' + fmtSizes(m.inProgress) + '</span>'
+        +       '<span class="plan-detail-price">' + m.inProgress.total + '€</span>'
+        +     '</div>'
+        +     '<div class="plan-detail-row plan-detail-row--bugs">'
+        +       '<span class="plan-detail-label">Bugs corrigés ce cycle</span>'
+        +       '<span class="plan-detail-sizes">' + m.bugs + ' ticket' + (m.bugs !== 1 ? 's' : '') + '</span>'
+        +       '<span class="plan-detail-price">inclus</span>'
+        +     '</div>'
+        +   '</div>'
+        + '</div>';
+      host.style.display = 'block';
     }
     var MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
     var MIN_TITLE_LENGTH = 15;
@@ -1274,6 +1636,8 @@
             }).join('');
           }
         }
+
+        try { renderPlanMetrics(); } catch(e) {}
       } catch (err) {
         for (var c = 0; c < COLUMNS.length; c++) {
           document.getElementById('body-' + COLUMNS[c].key).innerHTML =
@@ -1965,7 +2329,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.36</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.37</div>
 </body>
 </html>
 
