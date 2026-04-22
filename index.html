@@ -1174,7 +1174,7 @@
     // Mapping Linear status → column key (aligné sur les statuts actifs Linear team Riviera Flow)
     // Statuts actifs : Backlog, Next Release, Planned for Release, Dev in Progress, In QA,
     //                  Ready for deployment, Deployed on Prod, Duplicate, Canceled.
-    // Duplicate et Canceled sont volontairement non mappés (filtrés de la board).
+    // Deployed on Prod, Duplicate et Canceled sont volontairement non mappés (filtrés de la board).
     var STATUS_TO_COLUMN = {
       'Backlog': 'backlog',
       'Next Release': 'next',
@@ -1182,7 +1182,6 @@
       'Dev in Progress': 'dev',
       'In QA': 'qa',
       'Ready for deployment': 'done',
-      'Deployed on Prod': 'done',
     };
 
     // --- Estimation T-shirt (champ natif Linear "estimate", valeur Float Fibonacci) ---
@@ -1658,8 +1657,8 @@
         for (var i = 0; i < ticketsData.length; i++) {
           var t = ticketsData[i];
           var stateName = (t.state && t.state.name) ? t.state.name : '';
-          var col = STATUS_TO_COLUMN[stateName] || 'backlog';
-          if (!grouped[col]) col = 'backlog';
+          var col = STATUS_TO_COLUMN[stateName];
+          if (!col || !grouped[col]) continue; // statut non mappé (Deployed on Prod, Duplicate, Canceled) → exclu
           grouped[col].push({ ticket: t, globalIndex: i });
         }
 
@@ -2393,7 +2392,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.40</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.41</div>
 </body>
 </html>
 
