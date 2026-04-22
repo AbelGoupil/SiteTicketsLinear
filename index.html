@@ -241,6 +241,16 @@
       border-radius: 3px; white-space: nowrap;
     }
 
+    .ticket-size-badge {
+      font-size: 9px; font-weight: 700; padding: 1px 6px;
+      border-radius: 3px; white-space: nowrap;
+      background: rgba(108, 99, 255, 0.15); color: #6c63ff;
+      letter-spacing: 0.3px;
+    }
+    .ticket-size-badge--none {
+      background: #252525; color: #666; font-weight: 500;
+    }
+
     .ticket-priority {
       font-size: 9px; font-weight: 600; padding: 1px 6px;
       border-radius: 3px; text-transform: uppercase; margin-left: auto;
@@ -735,16 +745,36 @@
       { key: 'done', name: 'Prêt pour livraison', color: '#4ade80', droppable: false },
     ];
 
-    // Mapping Linear status → column key
+    // Mapping Linear status → column key (aligné sur les statuts actifs Linear team Riviera Flow)
+    // Statuts actifs : Backlog, Next Release, Planned for Release, Dev in Progress, In QA,
+    //                  Ready for deployment, Deployed on Prod, Duplicate, Canceled.
+    // Duplicate et Canceled sont volontairement non mappés (filtrés de la board).
     var STATUS_TO_COLUMN = {
-      'Backlog': 'backlog', 'Triage': 'backlog', 'Shaping': 'backlog',
-      'To Estimate': 'backlog', 'Todo': 'backlog', 'Later': 'backlog',
-      'Next Release': 'next', 'Next version': 'next',
+      'Backlog': 'backlog',
+      'Next Release': 'next',
       'Planned for Release': 'release',
-      'Dev in Progress': 'dev', 'In Dev': 'dev', 'In Design': 'dev',
-      'In QA': 'qa', 'In Review': 'qa', 'Reviewed and Pending': 'qa',
-      'Ready for deployment': 'done', 'Deployed on Prod': 'done', 'Deployed': 'done',
+      'Dev in Progress': 'dev',
+      'In QA': 'qa',
+      'Ready for deployment': 'done',
+      'Deployed on Prod': 'done',
     };
+
+    // --- Estimation T-shirt (champ natif Linear "estimate", valeur Float Fibonacci) ---
+    // Mapping valeur Linear → taille T-shirt lisible
+    var ESTIMATE_VALUE_TO_SIZE = { 1: 'XS', 2: 'S', 3: 'M', 5: 'L', 8: 'XL' };
+    // Barème de prix indicatif (utilisé en Étape 3 pour la barre budget)
+    var SIZE_PRICES = { XS: 50, S: 200, M: 400, L: 800, XL: 1200 };
+
+    function getSizeBadgeHtml(ticket) {
+      var size = null;
+      if (ticket && typeof ticket.estimate === 'number' && ticket.estimate > 0) {
+        size = ESTIMATE_VALUE_TO_SIZE[ticket.estimate] || null;
+      }
+      if (size) {
+        return '<span class="ticket-size-badge" title="Taille estimée : ' + size + '">' + size + '</span>';
+      }
+      return '<span class="ticket-size-badge ticket-size-badge--none" title="Non estimé">–</span>';
+    }
 
     // Mapping column key → Linear state ID (for drag & drop)
     var COLUMN_TO_STATE = {
@@ -1236,6 +1266,7 @@
                 '<div class="card-top">' +
                   '<span class="ticket-id">' + escapeHtml(t.identifier) + '</span>' +
                   getTypeLabelHtml(t) +
+                  getSizeBadgeHtml(t) +
                   (t.priority && t.priority !== 0 ? '<span class="ticket-priority priority-' + t.priority + '">' + (PRIORITY_LABELS[t.priority] || '?') + '</span>' : '') +
                 '</div>' +
                 '<div class="ticket-title-card">' + escapeHtml(t.title) + '</div>' +
@@ -1934,7 +1965,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.35</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.36</div>
 </body>
 </html>
 
