@@ -358,6 +358,60 @@
     .landing h2 { font-size: 18px; color: #fff; margin-bottom: 12px; }
     .landing p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 8px; }
     .landing code { background: #111; padding: 2px 8px; border-radius: 4px; font-size: 13px; color: #6c63ff; }
+
+    /* Plan card (forfait maintenance) */
+    .plan-card {
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 12px; padding: 0;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .plan-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; cursor: pointer;
+      user-select: none;
+    }
+    .plan-header:hover .plan-title { color: #6c63ff; }
+    .plan-title {
+      font-size: 14px; font-weight: 600; color: #e0e0e0;
+      display: flex; align-items: center; gap: 10px;
+      transition: color 0.2s;
+    }
+    .plan-icon { font-size: 16px; }
+    .plan-name-strong { color: #6c63ff; font-weight: 700; }
+    .plan-price { color: #888; font-weight: 500; }
+    .plan-arrow {
+      color: #888; font-size: 10px;
+      transition: transform 0.2s;
+    }
+    .plan-arrow.collapsed { transform: rotate(-90deg); }
+    .plan-body {
+      padding: 0 18px 16px;
+      border-top: 1px solid #232323;
+      padding-top: 14px;
+    }
+    .plan-body.collapsed { display: none; }
+    .plan-section-label {
+      font-size: 11px; font-weight: 600;
+      color: #888; text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 8px;
+    }
+    .plan-list {
+      list-style: none; padding: 0; margin: 0 0 14px;
+    }
+    .plan-list li {
+      position: relative; padding: 3px 0 3px 18px;
+      font-size: 13px; color: #d0d0d0; line-height: 1.5;
+    }
+    .plan-list li::before {
+      content: ""; position: absolute;
+      left: 4px; top: 10px;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #6c63ff;
+    }
+    .plan-list.plan-list-out li::before { background: #555; }
+    .plan-list.plan-list-out li { color: #999; }
+    .plan-list:last-child { margin-bottom: 0; }
   </style>
 </head>
 <body>
@@ -451,6 +505,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Plan card (forfait maintenance) - injecté dynamiquement via renderPlanCard() -->
+  <div id="plan-card-container" style="max-width:600px;margin:0 auto 16px;display:none;"></div>
 
   <!-- Board -->
   <div id="tickets-section">
@@ -570,6 +627,78 @@
     var TYPE_LABEL_NAMES = ['Bug', 'Improvement', 'Idée pour plus tard'];
     var MAX_TITLE_LENGTH = 200;
     var MAX_DESCRIPTION_LENGTH = 5000;
+
+    // --- Forfaits de maintenance ---
+    // 3 forfaits prévus (Essentiel / Pro / Premium). Seul "essentiel" est actif pour l'instant.
+    // Pour activer un nouveau client : ajouter son slug dans PROJECT_PLAN_MAP.
+    var PLANS = {
+      essentiel: {
+        name: 'Essentiel',
+        price: '500€/mois',
+        included: [
+          'Corrections de bugs',
+          'Ajustements UI (textes, petits layouts)',
+          'Petites améliorations fonctionnelles',
+          'Mises à jour techniques (iOS, Android, dépendances)',
+          'Mises en ligne sur les stores (Apple & Google Play)',
+          'Monitoring & suivi de stabilité',
+          'Échanges illimités avec l\'équipe Riviera Flow',
+          'Priorisation de vos demandes'
+        ],
+        excluded: [
+          'Nouvelles fonctionnalités',
+          'Modifications hors du scope initial'
+        ]
+      },
+      pro: null,      // À définir quand le forfait sera prêt
+      premium: null   // À définir quand le forfait sera prêt
+    };
+
+    // Mapping slug projet → clé forfait (tout en minuscules)
+    var PROJECT_PLAN_MAP = {
+      myfnbpass: 'essentiel'
+    };
+
+    function renderPlanCard(slug) {
+      var container = document.getElementById('plan-card-container');
+      if (!container) return;
+      var key = PROJECT_PLAN_MAP[(slug || '').toLowerCase()];
+      var plan = key ? PLANS[key] : null;
+      if (!plan) { container.style.display = 'none'; container.innerHTML = ''; return; }
+
+      var inHtml = plan.included.map(function(i) { return '<li>' + escapeHtml(i) + '</li>'; }).join('');
+      var outHtml = (plan.excluded || []).map(function(i) { return '<li>' + escapeHtml(i) + '</li>'; }).join('');
+      var outBlock = outHtml
+        ? '<div class="plan-section-label">Hors forfait</div>'
+          + '<ul class="plan-list plan-list-out">' + outHtml + '</ul>'
+        : '';
+
+      container.innerHTML =
+        '<div class="plan-card">'
+        +   '<div class="plan-header" onclick="togglePlanCard()">'
+        +     '<div class="plan-title">'
+        +       '<span class="plan-icon">&#128295;</span>'
+        +       '<span>Forfait <span class="plan-name-strong">' + escapeHtml(plan.name) + '</span> '
+        +       '<span class="plan-price">· ' + escapeHtml(plan.price) + '</span></span>'
+        +     '</div>'
+        +     '<span class="plan-arrow" id="plan-arrow">&#9660;</span>'
+        +   '</div>'
+        +   '<div class="plan-body" id="plan-body">'
+        +     '<div class="plan-section-label">Inclus dans votre maintenance mensuelle</div>'
+        +     '<ul class="plan-list">' + inHtml + '</ul>'
+        +     outBlock
+        +   '</div>'
+        + '</div>';
+      container.style.display = 'block';
+    }
+
+    function togglePlanCard() {
+      var body = document.getElementById('plan-body');
+      var arrow = document.getElementById('plan-arrow');
+      if (!body || !arrow) return;
+      body.classList.toggle('collapsed');
+      arrow.classList.toggle('collapsed');
+    }
     var MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
     var MIN_TITLE_LENGTH = 15;
     var MIN_TITLE_WORDS = 4;
@@ -873,6 +1002,7 @@
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('ticket-screen').style.display = 'block';
         document.getElementById('tickets-section').style.display = 'block';
+        try { renderPlanCard(window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase()); } catch(e) {}
         buildBoard();
         loadTickets();
       } catch (err) {
@@ -1805,7 +1935,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.32</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.33</div>
 </body>
 </html>
 
