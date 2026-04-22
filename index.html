@@ -444,9 +444,59 @@
       color: #888; cursor: help;
       line-height: 0; user-select: none;
       display: inline-flex; align-items: center;
+      position: relative;
     }
     .plan-metrics-info:hover { color: #6c63ff; }
     .plan-metrics-info svg { display: block; }
+
+    .plan-tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px); right: 0;
+      background: #0a0a0a;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      padding: 10px 12px;
+      min-width: 180px;
+      font-size: 12px;
+      color: #e0e0e0;
+      line-height: 1.5;
+      white-space: nowrap;
+      opacity: 0; visibility: hidden;
+      transform: translateY(4px);
+      transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+      z-index: 100;
+      cursor: default;
+      text-align: left;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .plan-metrics-info:hover .plan-tooltip,
+    .plan-tooltip:hover {
+      opacity: 1; visibility: visible;
+      transform: translateY(0);
+    }
+    .plan-tooltip::after {
+      content: ""; position: absolute;
+      top: 100%; right: 6px;
+      border: 5px solid transparent;
+      border-top-color: #3a3a3a;
+    }
+    .plan-tooltip-title {
+      font-size: 10px; font-weight: 600; color: #888;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    .plan-tooltip-row {
+      display: flex; justify-content: space-between;
+      gap: 16px;
+    }
+    .plan-tooltip-row > span:first-child {
+      color: #aaa; font-weight: 600;
+    }
+    .plan-tooltip-row > span:last-child {
+      color: #e0e0e0;
+    }
 
     .plan-metrics-row {
       display: flex; align-items: flex-start; gap: 16px;
@@ -1015,8 +1065,16 @@
       }
       var cycleLabel = fmtDate(cycle.start) + ' → ' + fmtDate(new Date(cycle.end.getTime() - 1));
 
-      // Tooltip barème
-      var barTip = 'Barème indicatif :\nXS ≈ 50€  ·  S ≈ 200€  ·  M ≈ 400€  ·  L ≈ 800€  ·  XL ≈ 1 200€';
+      // Tooltip barème (HTML, rendu via .plan-tooltip)
+      var tooltipHtml =
+        '<div class="plan-tooltip">'
+        +   '<div class="plan-tooltip-title">Barème indicatif</div>'
+        +   '<div class="plan-tooltip-row"><span>XS</span><span>≈ 50 €</span></div>'
+        +   '<div class="plan-tooltip-row"><span>S</span><span>≈ 200 €</span></div>'
+        +   '<div class="plan-tooltip-row"><span>M</span><span>≈ 400 €</span></div>'
+        +   '<div class="plan-tooltip-row"><span>L</span><span>≈ 800 €</span></div>'
+        +   '<div class="plan-tooltip-row"><span>XL</span><span>≈ 1 200 €</span></div>'
+        + '</div>';
 
       // Warning tickets non estimés
       var warnHtml = '';
@@ -1031,12 +1089,13 @@
         +     '<div class="plan-metrics-title">Cycle en cours '
         +       '<span class="plan-metrics-cycle">(' + cycleLabel + ')</span>'
         +     '</div>'
-        +     '<span class="plan-metrics-info" title="' + barTip.replace(/"/g, '&quot;') + '" aria-label="Barème indicatif">'
+        +     '<span class="plan-metrics-info" aria-label="Barème indicatif">'
         +       '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+        +       tooltipHtml
         +     '</span>'
         +   '</div>'
         +   '<div class="plan-metrics-row">'
-        +     '<div class="plan-bar-wrap" title="' + barTip.replace(/"/g, '&quot;') + '">'
+        +     '<div class="plan-bar-wrap">'
         +       '<div class="plan-bar">'
         +         '<div class="plan-bar-fill" style="width:' + pct.toFixed(2) + '%;"></div>'
         +         '<div class="plan-bar-cap" style="left:' + capPct.toFixed(2) + '%;" title="Soft cap : ' + cap + '€ inclus"></div>'
@@ -2333,7 +2392,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.38</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.39</div>
 </body>
 </html>
 
