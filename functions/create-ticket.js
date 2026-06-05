@@ -20,8 +20,8 @@ export async function onRequestPost(context) {
     const body = await context.request.json();
     const { password, title, description, priority, assetUrl, projectId, ticketType, documents } = body;
 
-    // --- Auth check ---
-    if (!password || password !== env.APP_PASSWORD) {
+    // --- Auth check (admin ou client) ---
+    if (!password || (password !== env.APP_PASSWORD && !(env.CLIENT_PASSWORD && password === env.CLIENT_PASSWORD))) {
       return new Response(
         JSON.stringify({ error: 'Mot de passe incorrect.' }),
         { status: 401, headers }

@@ -975,14 +975,14 @@
 
     // Calcule les métriques budget à partir de tous les tickets actuels.
     // Règles :
-    //  - "Prochaine version (retenu)" = colonne Next Release
-    //  - "Version en cours" = Planned for Release + Dev in Progress + In QA + Ready for deployment
+    //  - "Prochaine version (retenu)" = statut Prochaine version
+    //  - "Version en cours" = Version en cours + Dev in Progress + In QA + Ready for deployment
     //  - "Deployed on Prod" est exclu du budget (déjà livré)
     //  - Les bugs sont inclus dans le forfait : on les compte dans leur bucket mais à 0€
     // Retourne : {next: {...}, inProgress: {...}, total: €, unestimated: n}
     function computePlanMetrics(tickets) {
       var INPROGRESS_STATES = [
-        'Planned for Release',
+        'Version en cours',
         'Dev in Progress',
         'In QA',
         'Ready for deployment'
@@ -1002,7 +1002,7 @@
         var stateName = (t.state && t.state.name) ? t.state.name : '';
 
         var bucket = null;
-        if (stateName === 'Next Release') bucket = next;
+        if (stateName === 'Prochaine version') bucket = next;
         else if (INPROGRESS_STATES.indexOf(stateName) !== -1) bucket = inProg;
         else continue; // backlog / deployed / duplicate / canceled → hors budget
 
@@ -1183,6 +1183,28 @@
       'In QA': 'qa',
       'Ready for deployment': 'done',
     };
+
+    // --- Vue CLIENT : la colonne "Version en cours" agrège les 4 statuts de droite,
+    //     "Version en production" = statut Deployed on Prod filtré sur le milestone cible ---
+    var COLUMNS_CLIENT = [
+      { key: 'backlog', name: 'Backlog', color: '#f2994a', droppable: true },
+      { key: 'next', name: 'Prochaine version', color: '#6c63ff', droppable: true },
+      { key: 'release', name: 'Version en cours', color: '#56CCF2', droppable: false },
+      { key: 'prod', name: 'Version en production', color: '#22c55e', droppable: false },
+    ];
+    var STATUS_TO_COLUMN_CLIENT = {
+      'Backlog': 'backlog',
+      'Prochaine version': 'next',
+      'Version en cours': 'release',
+      'Dev in Progress': 'release',
+      'In QA': 'release',
+      'Ready for deployment': 'release',
+      'Deployed on Prod': 'prod',
+    };
+    // Milestone affiché dans la colonne "Version en production" (vue client)
+    var PROD_MILESTONE = 'v1.3';
+    // Rôle courant (déterminé par le serveur à l'auth) : 'admin' (6 col) ou 'client' (3 col)
+    var currentRole = 'admin';
 
     // --- Estimation T-shirt (champ natif Linear "estimate", valeur Float Fibonacci) ---
     // Mapping valeur Linear → taille T-shirt lisible
@@ -1453,6 +1475,15 @@
           return;
         }
         authedPassword = pwd;
+        // Déterminer le rôle renvoyé par le serveur → choisit la vue (admin 6 col / client 3 col)
+        try {
+          var authData = await res.json();
+          currentRole = (authData && authData.role === 'client') ? 'client' : 'admin';
+        } catch(e) { currentRole = 'admin'; }
+        if (currentRole === 'client') {
+          COLUMNS = COLUMNS_CLIENT;
+          STATUS_TO_COLUMN = STATUS_TO_COLUMN_CLIENT;
+        }
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('ticket-screen').style.display = 'block';
         document.getElementById('tickets-section').style.display = 'block';
@@ -1658,7 +1689,12 @@
           var t = ticketsData[i];
           var stateName = (t.state && t.state.name) ? t.state.name : '';
           var col = STATUS_TO_COLUMN[stateName];
-          if (!col || !grouped[col]) continue; // statut non mappé (Deployed on Prod, Duplicate, Canceled) → exclu
+          if (!col || !grouped[col]) continue; // statut non mappé (Duplicate, Canceled...) → exclu
+          // Colonne "Version en production" : ne garder que les tickets du milestone cible
+          if (col === 'prod') {
+            var msName = (t.projectMilestone && t.projectMilestone.name) ? t.projectMilestone.name : '';
+            if (msName.trim().toLowerCase() !== PROD_MILESTONE.toLowerCase()) continue;
+          }
           grouped[col].push({ ticket: t, globalIndex: i });
         }
 
@@ -2392,7 +2428,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.42</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.44</div>
 </body>
 </html>
 
