@@ -1164,21 +1164,21 @@
     // Columns config
     var COLUMNS = [
       { key: 'backlog', name: 'Backlog', color: '#f2994a', droppable: true },
-      { key: 'next', name: 'Voulu en prochaine version', color: '#6c63ff', droppable: true },
-      { key: 'release', name: 'Release en cours', color: '#56CCF2', droppable: false },
+      { key: 'next', name: 'Prochaine version', color: '#6c63ff', droppable: true },
+      { key: 'release', name: 'Version en cours', color: '#56CCF2', droppable: false },
       { key: 'dev', name: 'Dev en cours', color: '#f2c94c', droppable: false },
       { key: 'qa', name: 'En cours de qualif', color: '#BB87FC', droppable: false },
       { key: 'done', name: 'Prêt pour livraison', color: '#4ade80', droppable: false },
     ];
 
     // Mapping Linear status → column key (aligné sur les statuts actifs Linear team Riviera Flow)
-    // Statuts actifs : Backlog, Next Release, Planned for Release, Dev in Progress, In QA,
+    // Statuts actifs : Backlog, Prochaine version, Version en cours, Dev in Progress, In QA,
     //                  Ready for deployment, Deployed on Prod, Duplicate, Canceled.
     // Deployed on Prod, Duplicate et Canceled sont volontairement non mappés (filtrés de la board).
     var STATUS_TO_COLUMN = {
       'Backlog': 'backlog',
-      'Next Release': 'next',
-      'Planned for Release': 'release',
+      'Prochaine version': 'next',
+      'Version en cours': 'release',
       'Dev in Progress': 'dev',
       'In QA': 'qa',
       'Ready for deployment': 'done',
@@ -2392,7 +2392,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.41</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.42</div>
 </body>
 </html>
 
