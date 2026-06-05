@@ -579,6 +579,10 @@
       color: #e0e0e0; font-weight: 600;
       min-width: 56px; text-align: right;
     }
+    .plan-detail-over {
+      display: block; font-size: 10px; font-weight: 600;
+      color: #ff9f43; margin-top: 2px; white-space: nowrap;
+    }
     .plan-detail-row--bugs .plan-detail-price {
       color: #6c63ff; font-weight: 500; font-size: 11px;
     }
@@ -1060,6 +1064,11 @@
       var pct = Math.min(100, (total / barMax) * 100);
       var capPct = (cap / barMax) * 100;
       var overBudget = Math.max(0, total - cap);
+      // Hors forfait ventilé par version : le forfait couvre d'abord "Version en cours",
+      // le reliquat couvre "Prochaine version".
+      var overInProgress = Math.max(0, m.inProgress.total - cap);
+      var capLeft = Math.max(0, cap - m.inProgress.total);
+      var overNext = Math.max(0, m.next.total - capLeft);
 
       function fmtSizes(bucket) {
         var parts = [];
@@ -1123,12 +1132,12 @@
         +     '<div class="plan-detail-row">'
         +       '<span class="plan-detail-label">Prochaine version (retenu)</span>'
         +       '<span class="plan-detail-sizes">' + fmtSizes(m.next) + '</span>'
-        +       '<span class="plan-detail-price">' + m.next.total + '€</span>'
+        +       '<span class="plan-detail-price">' + m.next.total + '€' + (overNext > 0 ? '<span class="plan-detail-over">+' + overNext + '€ hors forfait</span>' : '') + '</span>'
         +     '</div>'
         +     '<div class="plan-detail-row">'
         +       '<span class="plan-detail-label">Version en cours (dev · qualif · livraison)</span>'
         +       '<span class="plan-detail-sizes">' + fmtSizes(m.inProgress) + '</span>'
-        +       '<span class="plan-detail-price">' + m.inProgress.total + '€</span>'
+        +       '<span class="plan-detail-price">' + m.inProgress.total + '€' + (overInProgress > 0 ? '<span class="plan-detail-over">+' + overInProgress + '€ hors forfait</span>' : '') + '</span>'
         +     '</div>'
         +   '</div>'
         + '</div>';
@@ -2428,7 +2437,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.44</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.45</div>
 </body>
 </html>
 
