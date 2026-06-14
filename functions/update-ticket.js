@@ -13,7 +13,7 @@ export async function onRequestPost(context) {
     var { password, issueId, title, description, priority, ticketType } = body;
 
     // --- Auth ---
-    if (!password || password !== env.APP_PASSWORD) {
+    if (!password || (password !== env.APP_PASSWORD && !(env.CLIENT_PASSWORD && password === env.CLIENT_PASSWORD))) {
       return new Response(
         JSON.stringify({ error: 'Mot de passe incorrect.' }),
         { status: 401, headers }

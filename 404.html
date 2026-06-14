@@ -1858,9 +1858,15 @@
         for (var dd = 0; dd < parsed.documents.length; dd++) {
           var doc = parsed.documents[dd];
           var url = proxyFileUrl(doc.url);
-          html += '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;background:#111;border:1px solid #2a2a2a;border-radius:6px;padding:8px 10px;font-size:12px;color:#ddd;text-decoration:none;">' +
-            '<span>📎</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(doc.name) + '</span>' +
-            '<span style="color:#6c63ff;font-size:11px;">Ouvrir</span></a>';
+          if (/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(doc.name)) {
+            html += '<div style="border-radius:8px;overflow:hidden;border:1px solid #2a2a2a;">' +
+              '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(doc.name) + '" style="width:100%;display:block;background:#111;">' +
+              '</div>';
+          } else {
+            html += '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;background:#111;border:1px solid #2a2a2a;border-radius:6px;padding:8px 10px;font-size:12px;color:#ddd;text-decoration:none;">' +
+              '<span>📎</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(doc.name) + '</span>' +
+              '<span style="color:#6c63ff;font-size:11px;">Ouvrir</span></a>';
+          }
         }
         html += '</div>';
       }
@@ -1900,10 +1906,32 @@
 
     // Proxy les URLs Linear privées via /get-file pour qu'elles s'affichent partout
     function proxyFileUrl(url) {
-      if (url && url.indexOf('uploads.linear.app') !== -1) {
+      if (!url) return url;
+      url = String(url).replace(/^<+|>+$/g, '').trim();
+      if (url.indexOf('uploads.linear.app') !== -1) {
         return '/get-file?url=' + encodeURIComponent(url) + '&p=' + encodeURIComponent(authedPassword);
       }
       return url;
+    }
+
+    // Nettoie le markdown normalisé par Linear : retire les antislashs d'échappement,
+    // les crochets vides [] / [ ] en début de ligne, et les lignes de code-fence ``` isolées.
+    function cleanDescText(s) {
+      if (s == null) return '';
+      return String(s).replace(/\\([\\`*_{}\[\]()#+\-.!>~])/g, '$1');
+    }
+    function cleanTextBlock(text) {
+      var lines = String(text).split('\n');
+      var out = [];
+      for (var i = 0; i < lines.length; i++) {
+        var l = cleanDescText(lines[i]);
+        if (/^\s*```/.test(l)) continue;
+        l = l.replace(/^(\s*)\[\s*\]\s?/, '$1');
+        out.push(l);
+      }
+      while (out.length && out[0].trim() === '') out.shift();
+      while (out.length && out[out.length - 1].trim() === '') out.pop();
+      return out.join('\n');
     }
 
     function parseDescription(desc) {
@@ -1917,12 +1945,9 @@
 
       function flushText() {
         if (textBuffer.length === 0) return;
-        // trim trailing empty lines
-        while (textBuffer.length && textBuffer[textBuffer.length - 1].trim() === '') textBuffer.pop();
-        // trim leading empty lines
-        while (textBuffer.length && textBuffer[0].trim() === '') textBuffer.shift();
-        if (textBuffer.length > 0) {
-          blocks.push({ type: 'text', text: textBuffer.join('\n') });
+        var cleaned = cleanTextBlock(textBuffer.join('\n'));
+        if (cleaned.trim() !== '') {
+          blocks.push({ type: 'text', text: cleaned });
         }
         textBuffer = [];
       }
@@ -1932,7 +1957,7 @@
         var line = lines[i];
 
         // Détecte les liens documents : "- 📎 [name](url)" ou "- [name](url)" si URL linear
-        var docMatch = line.match(/^- (?:📎\s*)?\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/);
+        var docMatch = line.match(/^[-*]\s+(?:📎\s*)?\[(.*?)\]\(<?\s*(https?:\/\/[^\s)>]+)\s*>?\)\s*$/);
         if (docMatch) {
           var dName = docMatch[1];
           var dUrl = docMatch[2];
@@ -1943,41 +1968,41 @@
         }
 
         // Détecte ![alt](url) pour les images ET [text](url) pour les vidéos
-        var imgMatch = line.match(/^!\[(.*?)\]\((.*?)\)$/);
+        var imgMatch = line.match(/^!\[(.*?)\]\(<?\s*([^)>]+?)\s*>?\)\s*$/);
         if (imgMatch) {
           mediaUrl = imgMatch[2];
           mediaType = (imgMatch[1] === 'video') ? 'video' : 'image';
           continue;
         }
-        var linkMatch = line.match(/^\[(.*?)\]\((https:\/\/uploads\.linear\.app\/.*?)\)$/);
+        var linkMatch = line.match(/^\[(.*?)\]\(<?\s*(https:\/\/uploads\.linear\.app\/[^\s)>]+)\s*>?\)\s*$/);
         if (linkMatch && !mediaUrl) {
           mediaUrl = linkMatch[2];
           mediaType = 'video';
           continue;
         }
 
-        var cbChecked = line.match(/^- \[x\] (.+)$/i);
+        var cbChecked = line.match(/^[-*]\s+\[x\]\s+(.+)$/i);
         if (cbChecked) {
           flushText();
-          var cbC = { checked: true, text: cbChecked[1] };
-          checkboxes.push(cbC);
-          blocks.push({ type: 'checkbox', checked: true, text: cbChecked[1] });
+          var cbCText = cleanDescText(cbChecked[1]);
+          checkboxes.push({ checked: true, text: cbCText });
+          blocks.push({ type: 'checkbox', checked: true, text: cbCText });
           continue;
         }
 
-        var cbUnchecked = line.match(/^- \[ \] (.+)$/);
+        var cbUnchecked = line.match(/^[-*]\s+\[ \]\s+(.+)$/);
         if (cbUnchecked) {
           flushText();
-          var cbU = { checked: false, text: cbUnchecked[1] };
-          checkboxes.push(cbU);
-          blocks.push({ type: 'checkbox', checked: false, text: cbUnchecked[1] });
+          var cbUText = cleanDescText(cbUnchecked[1]);
+          checkboxes.push({ checked: false, text: cbUText });
+          blocks.push({ type: 'checkbox', checked: false, text: cbUText });
           continue;
         }
 
         var headingMatch = line.match(/^(#{1,3})\s+(.+?)\s*#*\s*$/);
         if (headingMatch) {
           flushText();
-          blocks.push({ type: 'heading', level: headingMatch[1].length, text: headingMatch[2] });
+          blocks.push({ type: 'heading', level: headingMatch[1].length, text: cleanDescText(headingMatch[2]) });
           textLines.push(line);
           continue;
         }
@@ -2441,7 +2466,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.46</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.47</div>
 </body>
 </html>
 
