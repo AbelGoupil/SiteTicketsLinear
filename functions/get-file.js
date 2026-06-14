@@ -10,7 +10,7 @@ export async function onRequestGet(context) {
 
   // --- Auth check via query param ---
   const password = url.searchParams.get('p');
-  if (!password || password !== env.APP_PASSWORD) {
+  if (!password || (password !== env.APP_PASSWORD && !(env.CLIENT_PASSWORD && password === env.CLIENT_PASSWORD))) {
     return new Response('Non autorisé.', { status: 401 });
   }
 
