@@ -208,6 +208,14 @@
       margin-left: auto;
     }
 
+    /* Header empilé (colonne Version en production : titre + n° version/date) */
+    .board-col-header--stack { flex-direction: column; align-items: stretch; gap: 4px; }
+    .board-col-header--stack .col-header-main { display: flex; align-items: center; gap: 8px; }
+    .col-version-info {
+      font-size: 11px; font-weight: 600; color: #22c55e;
+      padding-left: 17px; line-height: 1.3;
+    }
+
     .board-col-body {
       flex: 1; padding: 8px;
       min-height: 60px;
@@ -1082,7 +1090,7 @@
       var tooltipHtml =
         '<div class="plan-tooltip">'
         +   '<div class="plan-tooltip-title">Barème indicatif</div>'
-        +   '<div class="plan-tooltip-row"><span>XS</span><span>≈ 50 €</span></div>'
+        +   '<div class="plan-tooltip-row"><span>XS</span><span>≈ 100 €</span></div>'
         +   '<div class="plan-tooltip-row"><span>S</span><span>≈ 200 €</span></div>'
         +   '<div class="plan-tooltip-row"><span>M</span><span>≈ 400 €</span></div>'
         +   '<div class="plan-tooltip-row"><span>L</span><span>≈ 800 €</span></div>'
@@ -1215,7 +1223,10 @@
       'Deployed on Prod': 'prod',
     };
     // Milestone affiché dans la colonne "Version en production" (vue client)
-    var PROD_MILESTONE = 'v1.3';
+    // ⚠️ Doit correspondre EXACTEMENT au nom du milestone Linear.
+    //    À chaque release : changer cette seule ligne. Le n° de version + la date
+    //    de livraison s'affichent automatiquement (date = targetDate du milestone).
+    var PROD_MILESTONE = 'v1.4';
     // Rôle courant (déterminé par le serveur à l'auth) : 'admin' (6 col) ou 'client' (3 col)
     var currentRole = 'admin';
 
@@ -1223,7 +1234,7 @@
     // Mapping valeur Linear → taille T-shirt lisible
     var ESTIMATE_VALUE_TO_SIZE = { 1: 'XS', 2: 'S', 3: 'M', 5: 'L', 8: 'XL' };
     // Barème de prix indicatif (utilisé en Étape 3 pour la barre budget)
-    var SIZE_PRICES = { XS: 50, S: 200, M: 400, L: 800, XL: 1200 };
+    var SIZE_PRICES = { XS: 100, S: 200, M: 400, L: 800, XL: 1200 };
 
     function getSizeBadgeHtml(ticket) {
       var size = null;
@@ -1639,18 +1650,58 @@
       loadTickets();
     }
 
+    // Formate une targetDate Linear ("YYYY-MM-DD") en date FR lisible ("15 juin 2026").
+    // Parsing manuel des composants → pas de décalage de fuseau horaire.
+    function formatProdDate(iso) {
+      var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+      if (!m) return '';
+      var months = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+      return parseInt(m[3], 10) + ' ' + months[parseInt(m[2], 10) - 1] + ' ' + m[1];
+    }
+
+    // Met à jour la ligne "n° version · livré le ..." de la colonne Version en production.
+    function updateProdVersionInfo() {
+      var el = document.getElementById('prod-version-info');
+      if (!el) return; // colonne absente (vue admin)
+      var prodDate = '';
+      for (var i = 0; i < ticketsData.length; i++) {
+        var ms = ticketsData[i].projectMilestone;
+        if (ms && ms.name && ms.name.trim().toLowerCase() === PROD_MILESTONE.toLowerCase() && ms.targetDate) {
+          prodDate = formatProdDate(ms.targetDate);
+          break;
+        }
+      }
+      el.textContent = PROD_MILESTONE + (prodDate ? ' · livré le ' + prodDate : '');
+    }
+
     // --- Build board columns ---
     function buildBoard() {
       var boardEl = document.getElementById('board');
       var html = '';
       for (var c = 0; c < COLUMNS.length; c++) {
         var col = COLUMNS[c];
+        var headerHtml;
+        if (col.key === 'prod') {
+          // Colonne "Version en production" : titre + ligne n° version/date (remplie après loadTickets)
+          headerHtml =
+            '<div class="board-col-header board-col-header--stack">' +
+              '<div class="col-header-main">' +
+                '<span class="col-dot" style="background:' + col.color + '"></span> ' +
+                col.name +
+                ' <span class="col-count" id="count-' + col.key + '">0</span>' +
+              '</div>' +
+              '<div class="col-version-info" id="prod-version-info"></div>' +
+            '</div>';
+        } else {
+          headerHtml =
+            '<div class="board-col-header">' +
+              '<span class="col-dot" style="background:' + col.color + '"></span> ' +
+              col.name +
+              ' <span class="col-count" id="count-' + col.key + '">0</span>' +
+            '</div>';
+        }
         html += '<div class="board-col" id="col-' + col.key + '">' +
-          '<div class="board-col-header">' +
-            '<span class="col-dot" style="background:' + col.color + '"></span> ' +
-            col.name +
-            ' <span class="col-count" id="count-' + col.key + '">0</span>' +
-          '</div>' +
+          headerHtml +
           '<div class="board-col-body" id="body-' + col.key + '" data-col="' + col.key + '"></div>' +
         '</div>';
       }
@@ -1694,6 +1745,7 @@
         if (!res.ok) throw new Error(data.error || 'Erreur HTTP ' + res.status);
 
         ticketsData = data.tickets || [];
+        updateProdVersionInfo();
 
         var grouped = {};
         for (var c = 0; c < COLUMNS.length; c++) grouped[COLUMNS[c].key] = [];
@@ -2466,7 +2518,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.48</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.49</div>
 </body>
 </html>
 
