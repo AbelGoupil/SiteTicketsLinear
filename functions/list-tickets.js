@@ -42,7 +42,7 @@ export async function onRequestPost(context) {
     const LABEL_VISU_CLIENT = env.LINEAR_LABEL_VISU || '0bcea0c2-e93b-47b4-aae2-b5ba4fd0f25a';
 
     const graphqlBody = JSON.stringify({
-      query: `query { issues(filter: { project: { id: { eq: "${projectId}" } }, labels: { id: { in: ["${LABEL_VISU_CLIENT}"] } } }, orderBy: updatedAt, first: 250) { nodes { id identifier title description priority estimate createdAt url state { name } projectMilestone { name targetDate } labels { nodes { name color } } } } }`
+      query: `query { issues(filter: { project: { id: { eq: "${projectId}" } }, labels: { id: { in: ["${LABEL_VISU_CLIENT}"] } } }, orderBy: updatedAt, first: 250) { nodes { id identifier title description priority estimate createdAt url state { name } projectMilestone { name targetDate } labels { nodes { name color } } } } project(id: "${projectId}") { projectMilestones { nodes { name targetDate } } } }`
     });
 
     const linearRes = await fetch('https://api.linear.app/graphql', {
@@ -68,8 +68,16 @@ export async function onRequestPost(context) {
       issues = linearData.data.issues.nodes;
     }
 
+    // Milestones du projet (nom + date cible) pour l'affichage des en-têtes de colonnes,
+    // indépendamment des tickets (fonctionne même si aucun ticket n'est encore assigné).
+    var milestones = [];
+    if (linearData.data && linearData.data.project && linearData.data.project.projectMilestones
+        && linearData.data.project.projectMilestones.nodes) {
+      milestones = linearData.data.project.projectMilestones.nodes;
+    }
+
     return new Response(
-      JSON.stringify({ success: true, tickets: issues, role: role }),
+      JSON.stringify({ success: true, tickets: issues, milestones: milestones, role: role }),
       { status: 200, headers }
     );
 

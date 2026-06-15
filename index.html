@@ -1239,6 +1239,12 @@
     //    À chaque release : changer cette seule ligne. Tout ticket de la colonne dont
     //    le milestone diffère est marqué "leftover" (reliquat d'une version précédente).
     var CURRENT_MILESTONE = 'v1.5';
+    // Milestone planifié, affiché en tête de la colonne "Prochaine version".
+    // ⚠️ Doit correspondre EXACTEMENT au nom du milestone Linear.
+    var NEXT_MILESTONE = 'v1.6';
+    // Dates cibles des milestones (nom → "YYYY-MM-DD"), renseignées par le serveur
+    // à chaque loadTickets depuis Linear. Source des dates affichées en tête de colonne.
+    var milestoneDates = {};
     // Rôle courant (déterminé par le serveur à l'auth) : 'admin' (6 col) ou 'client' (3 col)
     var currentRole = 'admin';
 
@@ -1687,23 +1693,20 @@
     function columnVersionConfig(colKey) {
       if (colKey === 'prod') return { milestone: PROD_MILESTONE, verb: 'livré le ' };
       if (colKey === 'release') return { milestone: CURRENT_MILESTONE, verb: 'prévu le ' };
+      if (colKey === 'next') return { milestone: NEXT_MILESTONE, verb: 'prévu le ' };
       return null;
     }
 
-    // Cherche la targetDate (FR) d'un milestone parmi les tickets chargés.
+    // Cherche la targetDate (FR) d'un milestone via la map renvoyée par le serveur.
     function milestoneTargetDate(msName) {
-      for (var i = 0; i < ticketsData.length; i++) {
-        var ms = ticketsData[i].projectMilestone;
-        if (ms && ms.name && ms.name.trim().toLowerCase() === msName.toLowerCase() && ms.targetDate) {
-          return formatProdDate(ms.targetDate);
-        }
-      }
-      return '';
+      if (!msName) return '';
+      var iso = milestoneDates[msName.trim().toLowerCase()];
+      return iso ? formatProdDate(iso) : '';
     }
 
-    // Met à jour les lignes "n° version · <verbe> <date>" des colonnes prod et release.
+    // Met à jour les lignes "n° version · <verbe> <date>" des colonnes prod, release et next.
     function updateColumnsVersionInfo() {
-      ['prod', 'release'].forEach(function(colKey) {
+      ['prod', 'release', 'next'].forEach(function(colKey) {
         var el = document.getElementById('verinfo-' + colKey);
         if (!el) return; // colonne absente dans la vue courante
         var cfg = columnVersionConfig(colKey);
@@ -1783,6 +1786,11 @@
         if (!res.ok) throw new Error(data.error || 'Erreur HTTP ' + res.status);
 
         ticketsData = data.tickets || [];
+        // Construire la map nom milestone (minuscule) → date cible ISO
+        milestoneDates = {};
+        (data.milestones || []).forEach(function(m) {
+          if (m && m.name && m.targetDate) milestoneDates[m.name.trim().toLowerCase()] = m.targetDate;
+        });
         updateColumnsVersionInfo();
 
         var grouped = {};
@@ -2557,7 +2565,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.50</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.51</div>
 </body>
 </html>
 
