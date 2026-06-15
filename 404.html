@@ -259,6 +259,13 @@
       background: #252525; color: #666; font-weight: 500;
     }
 
+    .ticket-leftover-badge {
+      font-size: 9px; font-weight: 700; padding: 1px 6px;
+      border-radius: 3px; white-space: nowrap;
+      background: rgba(242, 153, 74, 0.18); color: #f2994a;
+      letter-spacing: 0.3px; text-transform: uppercase;
+    }
+
     .ticket-priority {
       font-size: 9px; font-weight: 600; padding: 1px 6px;
       border-radius: 3px; text-transform: uppercase; margin-left: auto;
@@ -1227,6 +1234,11 @@
     //    À chaque release : changer cette seule ligne. Le n° de version + la date
     //    de livraison s'affichent automatiquement (date = targetDate du milestone).
     var PROD_MILESTONE = 'v1.4';
+    // Milestone en cours de développement, affiché en tête de la colonne "Version en cours".
+    // ⚠️ Doit correspondre EXACTEMENT au nom du milestone Linear.
+    //    À chaque release : changer cette seule ligne. Tout ticket de la colonne dont
+    //    le milestone diffère est marqué "leftover" (reliquat d'une version précédente).
+    var CURRENT_MILESTONE = 'v1.5';
     // Rôle courant (déterminé par le serveur à l'auth) : 'admin' (6 col) ou 'client' (3 col)
     var currentRole = 'admin';
 
@@ -1245,6 +1257,17 @@
         return '<span class="ticket-size-badge" title="Taille estimée : ' + size + '">' + size + '</span>';
       }
       return '<span class="ticket-size-badge ticket-size-badge--none" title="Non estimé">–</span>';
+    }
+
+    // Badge "leftover" : ticket de la colonne "Version en cours" rattaché à un autre
+    // milestone que le milestone courant (= reliquat d'une version précédente).
+    // Les tickets sans milestone ne sont pas marqués (jamais planifiés).
+    function getLeftoverBadgeHtml(ticket, colKey) {
+      if (colKey !== 'release') return '';
+      var ms = (ticket.projectMilestone && ticket.projectMilestone.name)
+        ? ticket.projectMilestone.name.trim() : '';
+      if (!ms || ms.toLowerCase() === CURRENT_MILESTONE.toLowerCase()) return '';
+      return '<span class="ticket-leftover-badge" title="Reliquat de ' + escapeHtml(ms) + '">leftover</span>';
     }
 
     // Mapping column key → Linear state ID (for drag & drop)
@@ -1659,19 +1682,34 @@
       return parseInt(m[3], 10) + ' ' + months[parseInt(m[2], 10) - 1] + ' ' + m[1];
     }
 
-    // Met à jour la ligne "n° version · livré le ..." de la colonne Version en production.
-    function updateProdVersionInfo() {
-      var el = document.getElementById('prod-version-info');
-      if (!el) return; // colonne absente (vue admin)
-      var prodDate = '';
+    // Colonnes qui affichent un n° de version + date en tête, et le mot de liaison associé.
+    // prod = milestone déjà livré ; release = milestone en cours de dev.
+    function columnVersionConfig(colKey) {
+      if (colKey === 'prod') return { milestone: PROD_MILESTONE, verb: 'livré le ' };
+      if (colKey === 'release') return { milestone: CURRENT_MILESTONE, verb: 'prévu le ' };
+      return null;
+    }
+
+    // Cherche la targetDate (FR) d'un milestone parmi les tickets chargés.
+    function milestoneTargetDate(msName) {
       for (var i = 0; i < ticketsData.length; i++) {
         var ms = ticketsData[i].projectMilestone;
-        if (ms && ms.name && ms.name.trim().toLowerCase() === PROD_MILESTONE.toLowerCase() && ms.targetDate) {
-          prodDate = formatProdDate(ms.targetDate);
-          break;
+        if (ms && ms.name && ms.name.trim().toLowerCase() === msName.toLowerCase() && ms.targetDate) {
+          return formatProdDate(ms.targetDate);
         }
       }
-      el.textContent = PROD_MILESTONE + (prodDate ? ' · livré le ' + prodDate : '');
+      return '';
+    }
+
+    // Met à jour les lignes "n° version · <verbe> <date>" des colonnes prod et release.
+    function updateColumnsVersionInfo() {
+      ['prod', 'release'].forEach(function(colKey) {
+        var el = document.getElementById('verinfo-' + colKey);
+        if (!el) return; // colonne absente dans la vue courante
+        var cfg = columnVersionConfig(colKey);
+        var date = milestoneTargetDate(cfg.milestone);
+        el.textContent = cfg.milestone + (date ? ' · ' + cfg.verb + date : '');
+      });
     }
 
     // --- Build board columns ---
@@ -1681,8 +1719,8 @@
       for (var c = 0; c < COLUMNS.length; c++) {
         var col = COLUMNS[c];
         var headerHtml;
-        if (col.key === 'prod') {
-          // Colonne "Version en production" : titre + ligne n° version/date (remplie après loadTickets)
+        if (columnVersionConfig(col.key)) {
+          // Colonnes prod / release : titre + ligne n° version/date (remplie après loadTickets)
           headerHtml =
             '<div class="board-col-header board-col-header--stack">' +
               '<div class="col-header-main">' +
@@ -1690,7 +1728,7 @@
                 col.name +
                 ' <span class="col-count" id="count-' + col.key + '">0</span>' +
               '</div>' +
-              '<div class="col-version-info" id="prod-version-info"></div>' +
+              '<div class="col-version-info" id="verinfo-' + col.key + '"></div>' +
             '</div>';
         } else {
           headerHtml =
@@ -1745,7 +1783,7 @@
         if (!res.ok) throw new Error(data.error || 'Erreur HTTP ' + res.status);
 
         ticketsData = data.tickets || [];
-        updateProdVersionInfo();
+        updateColumnsVersionInfo();
 
         var grouped = {};
         for (var c = 0; c < COLUMNS.length; c++) grouped[COLUMNS[c].key] = [];
@@ -1793,6 +1831,7 @@
                   '<span class="ticket-id">' + escapeHtml(t.identifier) + '</span>' +
                   getTypeLabelHtml(t) +
                   getSizeBadgeHtml(t) +
+                  getLeftoverBadgeHtml(t, colKey) +
                   (t.priority && t.priority !== 0 ? '<span class="ticket-priority priority-' + t.priority + '">' + (PRIORITY_LABELS[t.priority] || '?') + '</span>' : '') +
                 '</div>' +
                 '<div class="ticket-title-card">' + escapeHtml(t.title) + '</div>' +
@@ -2518,7 +2557,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.49</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.50</div>
 </body>
 </html>
 
