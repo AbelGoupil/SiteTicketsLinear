@@ -39,7 +39,7 @@ export async function onRequestPost(context) {
     // Seuls les statuts Shaping et Next version sont autorisés
     var ALLOWED_STATES = {
       'e27cf1cb-4c2c-47d1-848b-5205c8dbe4fb': true,
-      '446dc244-5df8-4e48-90b2-c75401b62d08': true,
+      'd881e3d3-0f3a-43a8-9470-62e935b10bd6': true,
     };
 
     if (!ALLOWED_STATES[stateId]) {
