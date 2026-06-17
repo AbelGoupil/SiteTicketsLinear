@@ -212,9 +212,10 @@
     .board-col-header--stack { flex-direction: column; align-items: stretch; gap: 4px; }
     .board-col-header--stack .col-header-main { display: flex; align-items: center; gap: 8px; }
     .col-version-info {
-      font-size: 11px; font-weight: 600; color: #22c55e;
-      padding-left: 17px; line-height: 1.3;
+      font-size: 11px; padding-left: 17px; line-height: 1.3;
     }
+    .col-ver-mute { color: #6e6e6e; font-weight: 400; }
+    .col-ver-date { color: #e0e0e0; font-weight: 600; }
 
     .board-col-body {
       flex: 1; padding: 8px;
@@ -523,26 +524,26 @@
     }
     .plan-bar-fill {
       height: 100%;
-      background: linear-gradient(90deg, #6c63ff 0%, #6c63ff 33.33%, #ff9f43 33.33%, #ff9f43 100%);
-      background-size: 300% 100%;
-      background-position: 0 0;
+      background: linear-gradient(90deg, #6c63ff 0%, #8a82ff 100%);
       transition: width 0.4s ease;
       border-radius: 999px;
     }
-    .plan-bar-cap {
+    /* Trait blanc = date de version (milestone) tombant dans la période */
+    .plan-bar-tick {
       position: absolute; top: -3px; bottom: -3px;
       width: 2px; background: #fff;
       box-shadow: 0 0 0 1px #000;
+      transform: translateX(-1px);
     }
     .plan-bar-legend {
-      position: relative; height: 16px; margin-top: 6px;
+      position: relative; height: 28px; margin-top: 6px;
       font-size: 10px; color: #888;
     }
-    .plan-bar-legend > span:nth-child(1) { position: absolute; left: 0; }
-    .plan-bar-legend > span:nth-child(3) { position: absolute; right: 0; }
-    .plan-bar-cap-label {
-      position: absolute; transform: translateX(-50%);
-      color: #ccc; font-weight: 600; white-space: nowrap;
+    .plan-bar-legend > span.plan-bar-edge-start { position: absolute; left: 0; top: 0; }
+    .plan-bar-legend > span.plan-bar-edge-end { position: absolute; right: 0; top: 0; }
+    .plan-bar-tick-label {
+      position: absolute; top: 13px; transform: translateX(-50%);
+      color: #fff; font-weight: 600; white-space: nowrap;
     }
 
     .plan-versions {
@@ -601,6 +602,40 @@
       margin-top: 10px; font-size: 11px; color: #777;
       font-style: italic;
     }
+
+    /* --- Carte facture unique --- */
+    .plan-invoice {
+      margin-top: 16px;
+      background: #111; border: 1px solid #2a2a2a;
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .plan-invoice-title {
+      font-size: 11px; font-weight: 600; color: #aaa;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      margin-bottom: 12px;
+    }
+    .plan-invoice-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-size: 13px; color: #d0d0d0; padding: 4px 0;
+    }
+    .plan-invoice-row .plan-invoice-amt { font-weight: 600; color: #e0e0e0; }
+    .plan-invoice-row--over .plan-invoice-amt { color: #ff9f43; }
+    .plan-invoice-total {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-top: 10px; padding-top: 10px; border-top: 1px solid #2a2a2a;
+    }
+    .plan-invoice-total-label {
+      font-size: 12px; font-weight: 600; color: #bbb;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .plan-invoice-total-amt { font-size: 22px; font-weight: 700; color: #f0f0f0; }
+
+    /* Prix de version affiché en tête de colonne */
+    .col-version-price {
+      font-size: 13px; padding-left: 17px; line-height: 1.4; margin-top: 2px;
+    }
+    .col-price-label { color: #6e6e6e; font-weight: 400; font-size: 11px; }
+    .col-price-amt { color: #f0f0f0; font-weight: 700; }
 
     @media (max-width: 600px) {
       .plan-metrics-row { flex-direction: column; gap: 12px; }
@@ -1010,9 +1045,14 @@
       }
       var next = newBucket();
       var inProg = newBucket();
+      var prod = newBucket();
       var unestimatedGlobal = 0;
 
-      if (!tickets) return { next: next, inProgress: inProg, total: 0, unestimated: 0 };
+      // Milestone prod du projet (pour ne compter que les tickets de la version en prod)
+      var prodMs = projectMilestones().prod;
+      var prodMsLower = prodMs ? prodMs.toLowerCase() : '';
+
+      if (!tickets) return { next: next, inProgress: inProg, prod: prod, total: 0, unestimated: 0 };
 
       for (var i = 0; i < tickets.length; i++) {
         var t = tickets[i];
@@ -1021,7 +1061,14 @@
         var bucket = null;
         if (stateName === 'Prochaine version') bucket = next;
         else if (INPROGRESS_STATES.indexOf(stateName) !== -1) bucket = inProg;
-        else continue; // backlog / deployed / duplicate / canceled → hors budget
+        else if (stateName === 'Deployed on Prod') {
+          // Version en production : uniquement les tickets du milestone prod cible
+          if (!prodMsLower) continue;
+          var pMs = (t.projectMilestone && t.projectMilestone.name) ? t.projectMilestone.name.trim().toLowerCase() : '';
+          if (pMs !== prodMsLower) continue;
+          bucket = prod;
+        }
+        else continue; // backlog / duplicate / canceled → hors budget
 
         bucket.count++;
 
@@ -1044,12 +1091,13 @@
       return {
         next: next,
         inProgress: inProg,
+        prod: prod,
         total: next.total + inProg.total,
         unestimated: unestimatedGlobal
       };
     }
 
-    // Rendu de la barre budget + détails. Appelé après chaque loadTickets().
+    // Rendu de la barre de temps (période de facturation) + carte facture. Appelé après chaque loadTickets().
     function renderPlanMetrics() {
       var host = document.getElementById('plan-metrics-container');
       if (!host) return;
@@ -1062,36 +1110,51 @@
       var m = computePlanMetrics(ticketsData);
       var plan = cfg.plan;
       var cap = plan.cycleBudget || 500;
-      var barMax = plan.barMax || (cap * 3);
 
-      // Label du cycle en cours (info seulement — ne filtre plus les tickets)
+      // --- Période de facturation : du jour de reset (ex 15) au même jour le mois suivant ---
       var cycle = getCurrentCycle(cfg.cycleResetDay);
       function fmtDate(d) {
         return new Intl.DateTimeFormat('fr-FR', {
           timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit'
         }).format(d);
       }
+      function fmtDateLong(d) {
+        return new Intl.DateTimeFormat('fr-FR', {
+          timeZone: 'Europe/Paris', day: 'numeric', month: 'short'
+        }).format(d);
+      }
       var cycleLabel = fmtDate(cycle.start) + ' → ' + fmtDate(new Date(cycle.end.getTime() - 1));
 
-      var total = m.total;
-      var pct = Math.min(100, (total / barMax) * 100);
-      var capPct = (cap / barMax) * 100;
-      var overBudget = Math.max(0, total - cap);
-      // Hors forfait ventilé par version : le forfait couvre d'abord "Version en cours",
-      // le reliquat couvre "Prochaine version".
-      var overInProgress = Math.max(0, m.inProgress.total - cap);
-      var capLeft = Math.max(0, cap - m.inProgress.total);
-      var overNext = Math.max(0, m.next.total - capLeft);
+      // Avancement temporel (fill = temps écoulé dans la période)
+      var span = cycle.end.getTime() - cycle.start.getTime();
+      var nowMs = Date.now();
+      var elapsedPct = Math.min(100, Math.max(0, (nowMs - cycle.start.getTime()) / span * 100));
 
-      function fmtSizes(bucket) {
-        var parts = [];
-        ['XS', 'S', 'M', 'L', 'XL'].forEach(function(sz) {
-          if (bucket.sizes[sz] > 0) parts.push(bucket.sizes[sz] + ' ' + sz);
-        });
-        if (bucket.unestimated > 0) parts.push(bucket.unestimated + ' non estimé' + (bucket.unestimated > 1 ? 's' : ''));
-        if (bucket.bugs > 0) parts.push(bucket.bugs + ' bug' + (bucket.bugs > 1 ? 's' : '') + ' (inclus)');
-        return parts.length ? parts.join(' · ') : 'aucun';
-      }
+      // Traits blancs = dates de milestones Linear tombant dans la période courante
+      var ticks = [];
+      Object.keys(milestoneDates).forEach(function(lower) {
+        var iso = milestoneDates[lower];
+        if (!iso) return;
+        var d = new Date(iso + 'T12:00:00');
+        var tMs = d.getTime();
+        if (tMs >= cycle.start.getTime() && tMs < cycle.end.getTime()) {
+          var pos = Math.min(100, Math.max(0, (tMs - cycle.start.getTime()) / span * 100));
+          var label = (milestoneLabels && milestoneLabels[lower]) ? milestoneLabels[lower] : lower;
+          ticks.push({ pos: pos, label: label, date: fmtDateLong(d) });
+        }
+      });
+      ticks.sort(function(a, b) { return a.pos - b.pos; });
+
+      var ticksBarHtml = ticks.map(function(tk) {
+        return '<div class="plan-bar-tick" style="left:' + tk.pos.toFixed(2) + '%;" title="' + escapeHtml(tk.label + ' · ' + tk.date) + '"></div>';
+      }).join('');
+      var ticksLabelHtml = ticks.map(function(tk) {
+        return '<span class="plan-bar-tick-label" style="left:' + tk.pos.toFixed(2) + '%;">' + escapeHtml(tk.label + ' · ' + tk.date) + '</span>';
+      }).join('');
+
+      // --- Facture période en cours : forfait + dépassement de la version en cours ---
+      var horsForfait = Math.max(0, m.inProgress.total - cap);
+      var totalFacture = cap + horsForfait;
 
       // Tooltip barème (HTML, rendu via .plan-tooltip)
       var tooltipHtml =
@@ -1108,13 +1171,13 @@
       var warnHtml = '';
       if (m.unestimated > 0) {
         warnHtml = '<div class="plan-warning">&#9888; ' + m.unestimated + ' ticket' + (m.unestimated > 1 ? 's' : '') +
-          ' non estimé' + (m.unestimated > 1 ? 's' : '') + ' — le budget affiché peut varier.</div>';
+          ' non estimé' + (m.unestimated > 1 ? 's' : '') + ' — le montant affiché peut varier.</div>';
       }
 
       host.innerHTML =
         '<div class="plan-metrics-card">'
         +   '<div class="plan-metrics-header">'
-        +     '<div class="plan-metrics-title">Budget de maintenance '
+        +     '<div class="plan-metrics-title">Maintenance '
         +       '<span class="plan-metrics-cycle">(' + cycleLabel + ')</span>'
         +     '</div>'
         +     '<span class="plan-metrics-info" aria-label="Barème indicatif">'
@@ -1125,37 +1188,30 @@
         +   '<div class="plan-metrics-row">'
         +     '<div class="plan-bar-wrap">'
         +       '<div class="plan-bar">'
-        +         '<div class="plan-bar-fill" style="width:' + pct.toFixed(2) + '%;"></div>'
-        +         '<div class="plan-bar-cap" style="left:' + capPct.toFixed(2) + '%;" title="Soft cap : ' + cap + '€ inclus"></div>'
+        +         '<div class="plan-bar-fill" style="width:' + elapsedPct.toFixed(2) + '%;"></div>'
+        +         ticksBarHtml
         +       '</div>'
         +       '<div class="plan-bar-legend">'
-        +         '<span>0€</span>'
-        +         '<span class="plan-bar-cap-label" style="left:' + capPct.toFixed(2) + '%;">' + cap + '€ (forfait)</span>'
-        +         '<span>' + barMax + '€</span>'
+        +         '<span class="plan-bar-edge-start">' + fmtDate(cycle.start) + '</span>'
+        +         ticksLabelHtml
+        +         '<span class="plan-bar-edge-end">' + fmtDate(new Date(cycle.end.getTime() - 1)) + '</span>'
         +       '</div>'
         +     '</div>'
         +   '</div>'
-        +   '<div class="plan-versions">'
-        +     '<div class="plan-version-card' + (overNext > 0 ? ' plan-version-card--over' : '') + '">'
-        +       '<div class="plan-version-head"><span class="plan-version-dot" style="background:#6c63ff"></span>Prochaine version</div>'
-        +       '<div class="plan-version-amount">' + m.next.total + '€</div>'
-        +       '<div class="plan-version-sizes">' + fmtSizes(m.next) + '</div>'
-        +       (overNext > 0
-                  ? '<div class="plan-version-tag plan-version-tag--over">+' + overNext + '€ hors forfait</div>'
-                  : '<div class="plan-version-tag plan-version-tag--ok">Compris dans le forfait</div>')
+        +   '<div class="plan-invoice">'
+        +     '<div class="plan-invoice-title">Facture période en cours</div>'
+        +     '<div class="plan-invoice-row">'
+        +       '<span>Forfait ' + escapeHtml(plan.name) + '</span>'
+        +       '<span class="plan-invoice-amt">' + cap + '€</span>'
         +     '</div>'
-        +     '<div class="plan-version-card' + (overInProgress > 0 ? ' plan-version-card--over' : '') + '">'
-        +       '<div class="plan-version-head"><span class="plan-version-dot" style="background:#56CCF2"></span>Version en cours</div>'
-        +       '<div class="plan-version-amount">' + m.inProgress.total + '€</div>'
-        +       '<div class="plan-version-sizes">' + fmtSizes(m.inProgress) + '</div>'
-        +       (overInProgress > 0
-                  ? '<div class="plan-version-tag plan-version-tag--over">+' + overInProgress + '€ hors forfait</div>'
-                  : '<div class="plan-version-tag plan-version-tag--ok">Compris dans le forfait</div>')
+        +     '<div class="plan-invoice-row' + (horsForfait > 0 ? ' plan-invoice-row--over' : '') + '">'
+        +       '<span>Hors forfait (version en cours)</span>'
+        +       '<span class="plan-invoice-amt">' + (horsForfait > 0 ? '+' + horsForfait + '€' : '—') + '</span>'
         +     '</div>'
-        +   '</div>'
-        +   '<div class="plan-summary">'
-        +     '<span class="plan-summary-label">Total hors forfait</span>'
-        +     '<span class="plan-summary-value' + (overBudget > 0 ? ' plan-summary-value--over' : '') + '">' + (overBudget > 0 ? '+' + overBudget + '€' : '—') + '</span>'
+        +     '<div class="plan-invoice-total">'
+        +       '<span class="plan-invoice-total-label">Total</span>'
+        +       '<span class="plan-invoice-total-amt">' + totalFacture + '€</span>'
+        +     '</div>'
         +   '</div>'
         +   warnHtml
         +   '<div class="plan-metrics-footer-note">Facturation au temps réel passé, pas à l\'estimation.</div>'
@@ -1247,9 +1303,11 @@
       var slug = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
       return PROJECT_MILESTONES[slug] || DEFAULT_MILESTONES;
     }
-    // Dates cibles des milestones (nom → "YYYY-MM-DD"), renseignées par le serveur
+    // Dates cibles des milestones (nom minuscule → "YYYY-MM-DD"), renseignées par le serveur
     // à chaque loadTickets depuis Linear. Source des dates affichées en tête de colonne.
     var milestoneDates = {};
+    // Noms d'origine des milestones (nom minuscule → nom affichable). Pour les labels des traits.
+    var milestoneLabels = {};
     // Rôle courant (déterminé par le serveur à l'auth) : 'admin' (6 col) ou 'client' (3 col)
     var currentRole = 'admin';
 
@@ -1719,7 +1777,26 @@
         if (!el) return; // colonne absente dans la vue courante
         var cfg = columnVersionConfig(colKey);
         var date = milestoneTargetDate(cfg.milestone);
-        el.textContent = cfg.milestone + (date ? ' · ' + cfg.verb + date : '');
+        el.innerHTML = '<span class="col-ver-mute">' + escapeHtml(cfg.milestone) + '</span>'
+          + (date ? ' <span class="col-ver-mute">' + escapeHtml(cfg.verb) + '</span><span class="col-ver-date">' + escapeHtml(date) + '</span>' : '');
+      });
+    }
+
+    // Affiche le prix de chaque version au-dessus de sa colonne (améliorations incluses).
+    // next = Prochaine version · release = Version en cours · prod = Version en production.
+    function updateColumnVersionPrices() {
+      if (!Array.isArray(ticketsData)) return;
+      // Prix de version réservé aux projets en maintenance (config forfait définie).
+      var slug = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+      var inMaintenance = !!getProjectPlanConfig(slug);
+      var m = inMaintenance ? computePlanMetrics(ticketsData) : null;
+      var priceByCol = m ? { next: m.next.total, release: m.inProgress.total, prod: m.prod.total } : {};
+      ['prod', 'release', 'next'].forEach(function(colKey) {
+        var el = document.getElementById('price-' + colKey);
+        if (!el) return; // colonne absente dans la vue courante
+        if (!inMaintenance || !columnVersionConfig(colKey)) { el.textContent = ''; return; }
+        var price = priceByCol[colKey] || 0;
+        el.innerHTML = '<span class="col-price-label">Prix version :</span> <span class="col-price-amt">' + price + '€</span>';
       });
     }
 
@@ -1740,6 +1817,7 @@
                 ' <span class="col-count" id="count-' + col.key + '">0</span>' +
               '</div>' +
               '<div class="col-version-info" id="verinfo-' + col.key + '"></div>' +
+              '<div class="col-version-price" id="price-' + col.key + '"></div>' +
             '</div>';
         } else {
           headerHtml =
@@ -1794,10 +1872,14 @@
         if (!res.ok) throw new Error(data.error || 'Erreur HTTP ' + res.status);
 
         ticketsData = data.tickets || [];
-        // Construire la map nom milestone (minuscule) → date cible ISO
+        // Construire la map nom milestone (minuscule) → date cible ISO + nom affichable
         milestoneDates = {};
+        milestoneLabels = {};
         (data.milestones || []).forEach(function(m) {
-          if (m && m.name && m.targetDate) milestoneDates[m.name.trim().toLowerCase()] = m.targetDate;
+          if (!m || !m.name) return;
+          var lower = m.name.trim().toLowerCase();
+          milestoneLabels[lower] = m.name.trim();
+          if (m.targetDate) milestoneDates[lower] = m.targetDate;
         });
         updateColumnsVersionInfo();
 
@@ -1858,6 +1940,7 @@
           }
         }
 
+        try { updateColumnVersionPrices(); } catch(e) {}
         try { renderPlanMetrics(); } catch(e) {}
       } catch (err) {
         for (var c = 0; c < COLUMNS.length; c++) {
@@ -2575,7 +2658,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.52</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.53</div>
 </body>
 </html>
 
