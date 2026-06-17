@@ -1229,19 +1229,24 @@
       'Ready for deployment': 'release',
       'Deployed on Prod': 'prod',
     };
-    // Milestone affiché dans la colonne "Version en production" (vue client)
-    // ⚠️ Doit correspondre EXACTEMENT au nom du milestone Linear.
-    //    À chaque release : changer cette seule ligne. Le n° de version + la date
-    //    de livraison s'affichent automatiquement (date = targetDate du milestone).
-    var PROD_MILESTONE = 'v1.4';
-    // Milestone en cours de développement, affiché en tête de la colonne "Version en cours".
-    // ⚠️ Doit correspondre EXACTEMENT au nom du milestone Linear.
-    //    À chaque release : changer cette seule ligne. Tout ticket de la colonne dont
-    //    le milestone diffère est marqué "leftover" (reliquat d'une version précédente).
-    var CURRENT_MILESTONE = 'v1.5';
-    // Milestone planifié, affiché en tête de la colonne "Prochaine version".
-    // ⚠️ Doit correspondre EXACTEMENT au nom du milestone Linear.
-    var NEXT_MILESTONE = 'v1.6';
+    // --- Milestones affichés en tête de colonnes, PAR PROJET (clé = slug URL) ---
+    // prod    = colonne "Version en production" (filtre les tickets + en-tête)
+    // release = colonne "Version en cours" (en-tête + base du badge "leftover")
+    // next    = colonne "Prochaine version" (en-tête)
+    // ⚠️ Chaque valeur doit correspondre EXACTEMENT au nom du milestone Linear.
+    //    null = aucune version pour cette colonne (en-tête masqué, prod : aucun ticket).
+    //    À chaque release d'un projet : décaler ses 3 valeurs ici.
+    var PROJECT_MILESTONES = {
+      myfnbpass: { prod: 'v1.4', release: 'v1.5', next: 'v1.6' },
+      vroom:     { prod: null,   release: 'V1.0', next: 'V1.1' },
+    };
+    var DEFAULT_MILESTONES = { prod: null, release: null, next: null };
+
+    // Config milestones du projet courant (déterminé par le slug de l'URL).
+    function projectMilestones() {
+      var slug = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+      return PROJECT_MILESTONES[slug] || DEFAULT_MILESTONES;
+    }
     // Dates cibles des milestones (nom → "YYYY-MM-DD"), renseignées par le serveur
     // à chaque loadTickets depuis Linear. Source des dates affichées en tête de colonne.
     var milestoneDates = {};
@@ -1270,9 +1275,11 @@
     // Les tickets sans milestone ne sont pas marqués (jamais planifiés).
     function getLeftoverBadgeHtml(ticket, colKey) {
       if (colKey !== 'release') return '';
+      var rel = projectMilestones().release;
+      if (!rel) return ''; // pas de version courante définie pour ce projet
       var ms = (ticket.projectMilestone && ticket.projectMilestone.name)
         ? ticket.projectMilestone.name.trim() : '';
-      if (!ms || ms.toLowerCase() === CURRENT_MILESTONE.toLowerCase()) return '';
+      if (!ms || ms.toLowerCase() === rel.toLowerCase()) return '';
       return '<span class="ticket-leftover-badge" title="Reliquat de ' + escapeHtml(ms) + '">leftover</span>';
     }
 
@@ -1691,9 +1698,10 @@
     // Colonnes qui affichent un n° de version + date en tête, et le mot de liaison associé.
     // prod = milestone déjà livré ; release = milestone en cours de dev.
     function columnVersionConfig(colKey) {
-      if (colKey === 'prod') return { milestone: PROD_MILESTONE, verb: 'livré le ' };
-      if (colKey === 'release') return { milestone: CURRENT_MILESTONE, verb: 'prévu le ' };
-      if (colKey === 'next') return { milestone: NEXT_MILESTONE, verb: 'prévu le ' };
+      var v = projectMilestones();
+      if (colKey === 'prod' && v.prod) return { milestone: v.prod, verb: 'livré le ' };
+      if (colKey === 'release' && v.release) return { milestone: v.release, verb: 'prévu le ' };
+      if (colKey === 'next' && v.next) return { milestone: v.next, verb: 'prévu le ' };
       return null;
     }
 
@@ -1801,10 +1809,12 @@
           var stateName = (t.state && t.state.name) ? t.state.name : '';
           var col = STATUS_TO_COLUMN[stateName];
           if (!col || !grouped[col]) continue; // statut non mappé (Duplicate, Canceled...) → exclu
-          // Colonne "Version en production" : ne garder que les tickets du milestone cible
+          // Colonne "Version en production" : ne garder que les tickets du milestone cible.
+          // Si aucun milestone prod défini pour le projet → colonne vide.
           if (col === 'prod') {
+            var prodMs = projectMilestones().prod;
             var msName = (t.projectMilestone && t.projectMilestone.name) ? t.projectMilestone.name : '';
-            if (msName.trim().toLowerCase() !== PROD_MILESTONE.toLowerCase()) continue;
+            if (!prodMs || msName.trim().toLowerCase() !== prodMs.toLowerCase()) continue;
           }
           grouped[col].push({ ticket: t, globalIndex: i });
         }
@@ -2565,7 +2575,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.51</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.52</div>
 </body>
 </html>
 
