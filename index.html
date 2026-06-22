@@ -89,17 +89,24 @@
     #drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
     #drop-zone p { color: #666; font-size: 13px; pointer-events: none; }
 
-    #preview-container {
-      display: none; position: relative; margin-top: 8px;
-      border-radius: 8px; overflow: hidden; border: 1px solid #333;
+    /* Galerie captures (multi) */
+    #media-gallery, #edit-media-gallery { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .media-thumb {
+      position: relative; width: 90px; height: 90px;
+      border-radius: 8px; overflow: hidden; border: 1px solid #333; background: #111;
     }
-    #preview-img, #preview-video { width: 100%; max-height: 160px; object-fit: contain; background: #111; display: block; }
-    #remove-img {
-      position: absolute; top: 6px; right: 6px;
-      width: 24px; height: 24px; padding: 0;
-      background: rgba(0,0,0,0.7); color: #ff6b6b;
-      border: none; border-radius: 50%; font-size: 12px;
+    .media-thumb img, .media-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .media-thumb .media-remove {
+      position: absolute; top: 3px; right: 3px;
+      width: 20px; height: 20px; padding: 0;
+      background: rgba(0,0,0,0.75); color: #ff6b6b;
+      border: none; border-radius: 50%; font-size: 11px;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .media-thumb .media-badge {
+      position: absolute; bottom: 3px; left: 3px;
+      background: rgba(0,0,0,0.75); color: #ddd; font-size: 9px;
+      padding: 1px 5px; border-radius: 4px;
     }
 
     /* Documents (multi-upload) */
@@ -697,16 +704,12 @@
           <div id="docs-list"></div>
         </div>
         <div class="field">
-          <label for="screenshot">Capture d'écran ou vidéo (obligatoire si c'est un bug)</label>
+          <label for="screenshot">Captures d'écran ou vidéos (obligatoire si c'est un bug)</label>
           <div id="drop-zone">
-            <input type="file" id="screenshot" onchange="handleFile(this)">
-            <p>Cliquez ou glissez une image / vidéo ici</p>
+            <input type="file" id="screenshot" multiple accept="image/*,video/*" onchange="handleMedia(this)">
+            <p>Cliquez ou glissez une ou plusieurs images / vidéos ici</p>
           </div>
-          <div id="preview-container">
-            <img id="preview-img" src="" alt="Aperçu">
-            <video id="preview-video" src="" controls style="display:none"></video>
-            <button type="button" id="remove-img" onclick="removeFile()">&#10005;</button>
-          </div>
+          <div id="media-gallery"></div>
         </div>
         <div class="field">
           <label for="description">Description</label>
@@ -803,19 +806,11 @@
           </div>
         </div>
         <div class="edit-field">
-          <label>Capture d'écran ou vidéo</label>
-          <div id="edit-media-current" style="display:none;margin-bottom:8px;">
-            <span id="edit-media-label" style="font-size:12px;color:#888;">Fichier actuel conservé</span>
-            <button type="button" onclick="removeEditFile()" style="margin-left:8px;background:#2d1515;color:#ff4444;border:1px solid #5c2020;border-radius:6px;padding:2px 10px;font-size:11px;cursor:pointer;">Retirer</button>
-          </div>
-          <div id="edit-drop-zone" style="border:1px dashed #333;border-radius:8px;padding:12px;text-align:center;cursor:pointer;" onclick="document.getElementById('edit-screenshot').click()">
-            <input type="file" id="edit-screenshot" onchange="handleEditFile(this)" style="display:none;">
-            <p style="color:#666;font-size:13px;" id="edit-drop-text">Cliquez pour changer ou ajouter un fichier</p>
-          </div>
-          <div id="edit-preview-container" style="display:none;position:relative;margin-top:8px;">
-            <img id="edit-preview-img" src="" style="width:100%;max-height:120px;object-fit:contain;background:#111;border-radius:6px;display:block;">
-            <video id="edit-preview-video" src="" controls style="display:none;width:100%;max-height:120px;background:#111;border-radius:6px;"></video>
-            <button type="button" onclick="removeEditNewFile()" style="position:absolute;top:4px;right:4px;background:#000;color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;">✕</button>
+          <label>Captures d'écran ou vidéos</label>
+          <div id="edit-media-gallery"></div>
+          <div id="edit-drop-zone" style="border:1px dashed #333;border-radius:8px;padding:12px;text-align:center;cursor:pointer;margin-top:8px;" onclick="document.getElementById('edit-screenshot').click()">
+            <input type="file" id="edit-screenshot" multiple accept="image/*,video/*" onchange="handleEditMedia(this)" style="display:none;">
+            <p style="color:#666;font-size:13px;" id="edit-drop-text">Cliquez ou glissez pour ajouter des images / vidéos</p>
           </div>
         </div>
         <div class="edit-field">
@@ -847,7 +842,9 @@
   <script>
     // --- State ---
     var authedPassword = null;
-    var selectedFile = null; // Le fichier brut (File object)
+    var selectedMedia = []; // Captures/vidéos : [{ id, file, isVideo }]
+    var mediaIdCounter = 0;
+    var MAX_MEDIA = 20;
     var selectedDocs = []; // Documents joints : [{ id, file, name, size, status: 'pending'|'uploading'|'done'|'error', url? }]
     var docIdCounter = 0;
     var MAX_DOCS = 20;
@@ -1226,8 +1223,8 @@
     var TITLE_ERROR_MSG = 'Êtes-vous sûr que le titre permet de décrire et de comprendre le contenu du ticket en un seul coup d\'œil ?\n\nExemples de bons titres :\n• Le bouton "Connexion" ne répond pas\n• L\'image de profil ne se met pas à jour après upload\n• Ajouter un filtre par date sur la liste des commandes';
     var titleWarningShown = false; // true = l'avertissement a déjà été affiché, on laisse passer au prochain clic
     var editTitleWarningShown = false;
-    var editSelectedFile = null; // nouveau fichier sélectionné en mode édition
-    var editRemoveMedia = false; // true = l'utilisateur veut retirer le media existant
+    var editExistingMedia = []; // [{ id, url, type, kept: bool }] captures déjà sur le ticket
+    var editNewMedia = []; // [{ id, file, isVideo }] nouvelles captures ajoutées en édition
     // Documents en mode édition
     var editExistingDocs = []; // [{ id, name, url, kept: bool }] docs déjà sur le ticket
     var editNewDocs = []; // [{ id, file, name, size, type, status, url? }]
@@ -1395,36 +1392,67 @@
       }
     }
 
-    // --- File upload (image ou vidéo) ---
-    function handleFile(input) {
-      var file = input.files[0];
-      if (!file) return;
-      var isImage = file.type.startsWith('image/');
-      var isVideo = file.type.startsWith('video/');
-      if (!isImage && !isVideo) { alert('Seules les images et vidéos sont acceptées.'); return; }
-      if (file.size > MAX_FILE_SIZE) { alert('Fichier trop volumineux (' + (file.size / 1024 / 1024).toFixed(1) + ' MB). Taille max : 100 MB.'); return; }
-      selectedFile = file;
-
-      var previewImg = document.getElementById('preview-img');
-      var previewVideo = document.getElementById('preview-video');
-
-      if (isImage) {
-        previewImg.style.display = 'block';
-        previewVideo.style.display = 'none';
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          previewImg.src = e.target.result;
-          document.getElementById('preview-container').style.display = 'block';
-          document.getElementById('drop-zone').style.display = 'none';
-        };
-        reader.readAsDataURL(file);
-      } else {
-        previewImg.style.display = 'none';
-        previewVideo.style.display = 'block';
-        previewVideo.src = URL.createObjectURL(file);
-        document.getElementById('preview-container').style.display = 'block';
-        document.getElementById('drop-zone').style.display = 'none';
+    // --- Captures d'écran / vidéos (multi) ---
+    function renderMedia() {
+      var gallery = document.getElementById('media-gallery');
+      if (!gallery) return;
+      gallery.innerHTML = '';
+      for (var i = 0; i < selectedMedia.length; i++) {
+        var m = selectedMedia[i];
+        var thumb = document.createElement('div');
+        thumb.className = 'media-thumb';
+        var inner;
+        if (m.isVideo) {
+          inner = document.createElement('video');
+          inner.src = URL.createObjectURL(m.file);
+          inner.muted = true;
+        } else {
+          inner = document.createElement('img');
+          inner.src = URL.createObjectURL(m.file);
+        }
+        thumb.appendChild(inner);
+        if (m.isVideo) {
+          var badge = document.createElement('span');
+          badge.className = 'media-badge';
+          badge.textContent = 'vidéo';
+          thumb.appendChild(badge);
+        }
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'media-remove';
+        btn.innerHTML = '&#10005;';
+        (function(id) { btn.onclick = function() { removeMedia(id); }; })(m.id);
+        thumb.appendChild(btn);
+        gallery.appendChild(thumb);
       }
+    }
+
+    function handleMedia(input) {
+      var files = input.files;
+      if (!files || files.length === 0) return;
+      for (var i = 0; i < files.length; i++) {
+        if (selectedMedia.length >= MAX_MEDIA) { alert('Maximum ' + MAX_MEDIA + ' fichiers.'); break; }
+        var f = files[i];
+        var isImage = f.type.startsWith('image/');
+        var isVideo = f.type.startsWith('video/');
+        if (!isImage && !isVideo) { alert('"' + f.name + '" ignoré : seules les images et vidéos sont acceptées.'); continue; }
+        if (f.size > MAX_FILE_SIZE) { alert('"' + f.name + '" trop volumineux (max 100 MB).'); continue; }
+        selectedMedia.push({ id: ++mediaIdCounter, file: f, isVideo: isVideo });
+      }
+      input.value = '';
+      renderMedia();
+    }
+
+    function removeMedia(id) {
+      selectedMedia = selectedMedia.filter(function(m) { return m.id !== id; });
+      renderMedia();
+    }
+
+    function resetMedia() {
+      selectedMedia = [];
+      var el = document.getElementById('screenshot');
+      if (el) el.value = '';
+      renderMedia();
     }
 
     // --- Documents (multi-upload) ---
@@ -1492,32 +1520,19 @@
       renderDocs();
     }
 
-    function removeFile() {
-      selectedFile = null;
-      document.getElementById('screenshot').value = '';
-      document.getElementById('preview-img').src = '';
-      document.getElementById('preview-img').style.display = 'block';
-      var previewVideo = document.getElementById('preview-video');
-      if (previewVideo.src) { URL.revokeObjectURL(previewVideo.src); }
-      previewVideo.src = '';
-      previewVideo.style.display = 'none';
-      document.getElementById('preview-container').style.display = 'none';
-      document.getElementById('drop-zone').style.display = 'block';
-    }
-
     document.addEventListener('DOMContentLoaded', function() {
       var dz = document.getElementById('drop-zone');
       dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('dragover'); });
       dz.addEventListener('dragleave', function() { dz.classList.remove('dragover'); });
       dz.addEventListener('drop', function(e) {
         e.preventDefault(); dz.classList.remove('dragover');
-        var file = e.dataTransfer.files[0];
-        if (file) {
+        var files = e.dataTransfer.files;
+        if (files && files.length) {
           var input = document.getElementById('screenshot');
           var dt = new DataTransfer();
-          dt.items.add(file);
+          for (var i = 0; i < files.length; i++) dt.items.add(files[i]);
           input.files = dt.files;
-          handleFile(input);
+          handleMedia(input);
         }
       });
 
@@ -1656,25 +1671,26 @@
       errEl.style.display = 'none'; btn.disabled = true; btn.textContent = 'Création en cours...';
 
       try {
-        // Étape 1a : upload du screenshot/vidéo si présent
-        var assetUrl = null;
-        if (selectedFile) {
-          btn.textContent = 'Upload du fichier...';
+        // Étape 1a : upload des captures/vidéos (plusieurs possibles)
+        var uploadedMedia = [];
+        for (var mi = 0; mi < selectedMedia.length; mi++) {
+          var m = selectedMedia[mi];
+          btn.textContent = 'Upload fichier ' + (mi + 1) + '/' + selectedMedia.length + '...';
           var uploadRes = await fetch('/upload-file', {
             method: 'POST',
             headers: {
               'X-App-Password': authedPassword,
-              'X-File-Type': selectedFile.type,
-              'X-File-Name': encodeURIComponent(selectedFile.name),
+              'X-File-Type': m.file.type,
+              'X-File-Name': encodeURIComponent(m.file.name),
             },
-            body: selectedFile,
+            body: m.file,
           });
           if (uploadRes.status === 413) throw new Error('Fichier trop volumineux. Taille max : 100 MB.');
           var uploadData = await uploadRes.json();
           if (!uploadRes.ok) throw new Error(uploadData.error || 'Erreur upload fichier');
-          assetUrl = uploadData.assetUrl;
-          btn.textContent = 'Création du ticket...';
+          uploadedMedia.push({ url: uploadData.assetUrl, isVideo: m.isVideo });
         }
+        btn.textContent = 'Création du ticket...';
 
         // Étape 1b : upload des documents (séquentiel pour UX claire)
         var uploadedDocs = [];
@@ -1717,8 +1733,7 @@
             password: authedPassword, title: title, description: description,
             priority: parseInt(priority), ticketType: ticketType,
             projectId: currentProject.projectId,
-            assetUrl: assetUrl,
-            assetType: selectedFile ? selectedFile.type : null,
+            media: uploadedMedia,
             documents: uploadedDocs
           })
         });
@@ -1739,7 +1754,7 @@
       document.getElementById('description').value = '';
       document.getElementById('priority').value = '3';
       document.getElementById('ticket-type').value = 'bug';
-      removeFile();
+      resetMedia();
       resetDocs();
       loadTickets();
     }
@@ -2015,31 +2030,36 @@
       var parsed = parseDescription(desc);
 
       var imgContainer = document.getElementById('detail-image-container');
-      var imgEl = document.getElementById('detail-image');
-      // Supprimer l'ancien élément vidéo s'il existe
-      var oldVideo = imgContainer.querySelector('video');
-      if (oldVideo) oldVideo.remove();
-
-      if (parsed.mediaUrl) {
-        var proxiedUrl = proxyFileUrl(parsed.mediaUrl);
-        if (parsed.mediaType === 'video') {
-          imgEl.style.display = 'none';
-          var vid = document.createElement('video');
-          vid.src = proxiedUrl;
-          vid.controls = true;
-          vid.style.width = '100%';
-          vid.style.display = 'block';
-          vid.style.background = '#111';
-          imgContainer.appendChild(vid);
-        } else {
-          imgEl.style.display = 'block';
-          imgEl.src = proxiedUrl;
+      // On reconstruit entièrement la galerie média à chaque ouverture
+      imgContainer.innerHTML = '';
+      var mediaList = (parsed.media && parsed.media.length) ? parsed.media
+        : (parsed.mediaUrl ? [{ url: parsed.mediaUrl, type: parsed.mediaType }] : []);
+      if (mediaList.length) {
+        for (var mi = 0; mi < mediaList.length; mi++) {
+          var proxiedUrl = proxyFileUrl(mediaList[mi].url);
+          if (mediaList[mi].type === 'video') {
+            var vid = document.createElement('video');
+            vid.src = proxiedUrl;
+            vid.controls = true;
+            vid.style.width = '100%';
+            vid.style.display = 'block';
+            vid.style.background = '#111';
+            if (mi > 0) vid.style.marginTop = '8px';
+            imgContainer.appendChild(vid);
+          } else {
+            var im = document.createElement('img');
+            im.src = proxiedUrl;
+            im.alt = 'Capture d\'écran';
+            im.style.width = '100%';
+            im.style.display = 'block';
+            im.style.background = '#111';
+            if (mi > 0) im.style.marginTop = '8px';
+            imgContainer.appendChild(im);
+          }
         }
         imgContainer.style.display = 'block';
       } else {
         imgContainer.style.display = 'none';
-        imgEl.src = '';
-        imgEl.style.display = 'block';
       }
 
       var contentEl = document.getElementById('detail-content');
@@ -2129,6 +2149,7 @@
     function parseDescription(desc) {
       var mediaUrl = null;
       var mediaType = 'image'; // 'image' ou 'video'
+      var media = []; // [{ url, type }] — plusieurs captures/vidéos possibles
       var checkboxes = [];
       var textLines = [];
       var documents = []; // [{ name, url }]
@@ -2162,33 +2183,23 @@
         // Détecte ![alt](url) pour les images ET [text](url) pour les vidéos
         var imgMatch = line.match(/^!\[(.*?)\]\(<?\s*([^)>]+?)\s*>?\)\s*$/);
         if (imgMatch) {
-          mediaUrl = imgMatch[2];
-          mediaType = (imgMatch[1] === 'video') ? 'video' : 'image';
+          var imType = (imgMatch[1] === 'video') ? 'video' : 'image';
+          media.push({ url: imgMatch[2], type: imType });
+          if (!mediaUrl) { mediaUrl = imgMatch[2]; mediaType = imType; }
           continue;
         }
         var linkMatch = line.match(/^\[(.*?)\]\(<?\s*(https:\/\/uploads\.linear\.app\/[^\s)>]+)\s*>?\)\s*$/);
-        if (linkMatch && !mediaUrl) {
-          mediaUrl = linkMatch[2];
-          mediaType = 'video';
+        if (linkMatch) {
+          media.push({ url: linkMatch[2], type: 'video' });
+          if (!mediaUrl) { mediaUrl = linkMatch[2]; mediaType = 'video'; }
           continue;
         }
 
-        var cbChecked = line.match(/^[-*]\s+\[x\]\s+(.+)$/i);
-        if (cbChecked) {
-          flushText();
-          var cbCText = cleanDescText(cbChecked[1]);
-          checkboxes.push({ checked: true, text: cbCText });
-          blocks.push({ type: 'checkbox', checked: true, text: cbCText });
-          continue;
-        }
-
-        var cbUnchecked = line.match(/^[-*]\s+\[ \]\s+(.+)$/);
-        if (cbUnchecked) {
-          flushText();
-          var cbUText = cleanDescText(cbUnchecked[1]);
-          checkboxes.push({ checked: false, text: cbUText });
-          blocks.push({ type: 'checkbox', checked: false, text: cbUText });
-          continue;
+        // Checkbox markdown legacy ("- [ ]" / "- [x]") → texte normal.
+        // On ne gère plus de cases à cocher : on retire juste le préfixe.
+        var cbStrip = line.match(/^(\s*)[-*]\s+\[(?:x| )\]\s+(.+)$/i);
+        if (cbStrip) {
+          line = cbStrip[1] + cleanDescText(cbStrip[2]);
         }
 
         var headingMatch = line.match(/^(#{1,3})\s+(.+?)\s*#*\s*$/);
@@ -2213,6 +2224,7 @@
       return {
         mediaUrl: mediaUrl,
         mediaType: mediaType,
+        media: media,
         checkboxes: checkboxes,
         text: textLines.join('\n').trim(),
         documents: documents,
@@ -2302,25 +2314,16 @@
       renderEditDocs();
       document.getElementById('edit-documents').value = '';
 
-      // Reset état fichier
-      editSelectedFile = null;
-      editRemoveMedia = false;
-      document.getElementById('edit-preview-container').style.display = 'none';
-      document.getElementById('edit-preview-img').style.display = 'block';
-      document.getElementById('edit-preview-img').src = '';
-      document.getElementById('edit-preview-video').style.display = 'none';
-      document.getElementById('edit-preview-video').src = '';
-      document.getElementById('edit-screenshot').value = '';
-
-      // Afficher l'état du media actuel
-      if (parsed.mediaUrl) {
-        document.getElementById('edit-media-current').style.display = 'block';
-        document.getElementById('edit-media-label').textContent = (parsed.mediaType === 'video' ? 'Vidéo' : 'Image') + ' actuelle conservée';
-        document.getElementById('edit-drop-text').textContent = 'Cliquez pour remplacer le fichier';
-      } else {
-        document.getElementById('edit-media-current').style.display = 'none';
-        document.getElementById('edit-drop-text').textContent = 'Cliquez pour ajouter un fichier';
+      // Init captures : reprendre celles existantes
+      editExistingMedia = [];
+      editNewMedia = [];
+      var pMedia = (parsed.media && parsed.media.length) ? parsed.media
+        : (parsed.mediaUrl ? [{ url: parsed.mediaUrl, type: parsed.mediaType }] : []);
+      for (var mk = 0; mk < pMedia.length; mk++) {
+        editExistingMedia.push({ id: ++mediaIdCounter, url: pMedia[mk].url, type: pMedia[mk].type, kept: true });
       }
+      document.getElementById('edit-screenshot').value = '';
+      renderEditMedia();
 
       // Masquer le contenu lecture, afficher le formulaire
       document.getElementById('detail-content').style.display = 'none';
@@ -2334,52 +2337,102 @@
       document.getElementById('detail-view-actions').style.display = '';
       document.getElementById('detail-edit-form').style.display = 'none';
       document.getElementById('edit-error').style.display = 'none';
-      editSelectedFile = null;
-      editRemoveMedia = false;
+      editExistingMedia = [];
+      editNewMedia = [];
       editExistingDocs = [];
       editNewDocs = [];
       var list = document.getElementById('edit-docs-list');
       if (list) list.innerHTML = '';
+      var mg = document.getElementById('edit-media-gallery');
+      if (mg) mg.innerHTML = '';
     }
 
-    function handleEditFile(input) {
-      var file = input.files[0];
-      if (!file) return;
-      if (file.size > MAX_FILE_SIZE) {
-        alert('Fichier trop volumineux. Taille max : 100 MB.');
-        input.value = '';
-        return;
-      }
-      editSelectedFile = file;
-      editRemoveMedia = false;
-      document.getElementById('edit-media-current').style.display = 'none';
-      var previewContainer = document.getElementById('edit-preview-container');
-      var previewImg = document.getElementById('edit-preview-img');
-      var previewVid = document.getElementById('edit-preview-video');
-      if (file.type.startsWith('video/')) {
-        previewImg.style.display = 'none';
-        previewVid.style.display = 'block';
-        previewVid.src = URL.createObjectURL(file);
-      } else {
-        previewVid.style.display = 'none';
-        previewImg.style.display = 'block';
-        previewImg.src = URL.createObjectURL(file);
-      }
-      previewContainer.style.display = 'block';
-    }
-
-    function removeEditNewFile() {
-      editSelectedFile = null;
-      document.getElementById('edit-screenshot').value = '';
-      document.getElementById('edit-preview-container').style.display = 'none';
-      // Re-afficher le media actuel s'il existait
-      var t = ticketsData[editingTicketIndex];
-      if (t) {
-        var parsed = parseDescription(t.description || '');
-        if (parsed.mediaUrl && !editRemoveMedia) {
-          document.getElementById('edit-media-current').style.display = 'block';
+    // --- Captures en mode édition (multi) ---
+    function renderEditMedia() {
+      var gallery = document.getElementById('edit-media-gallery');
+      if (!gallery) return;
+      gallery.innerHTML = '';
+      // Existantes conservées
+      for (var i = 0; i < editExistingMedia.length; i++) {
+        var em = editExistingMedia[i];
+        if (!em.kept) continue;
+        var thumbE = document.createElement('div');
+        thumbE.className = 'media-thumb';
+        var innerE;
+        if (em.type === 'video') {
+          innerE = document.createElement('video');
+          innerE.src = proxyFileUrl(em.url);
+        } else {
+          innerE = document.createElement('img');
+          innerE.src = proxyFileUrl(em.url);
         }
+        thumbE.appendChild(innerE);
+        if (em.type === 'video') {
+          var badgeE = document.createElement('span');
+          badgeE.className = 'media-badge'; badgeE.textContent = 'vidéo';
+          thumbE.appendChild(badgeE);
+        }
+        var btnE = document.createElement('button');
+        btnE.type = 'button'; btnE.className = 'media-remove'; btnE.innerHTML = '&#10005;';
+        (function(id) { btnE.onclick = function() { removeEditExistingMedia(id); }; })(em.id);
+        thumbE.appendChild(btnE);
+        gallery.appendChild(thumbE);
       }
+      // Nouvelles
+      for (var j = 0; j < editNewMedia.length; j++) {
+        var nm = editNewMedia[j];
+        var thumbN = document.createElement('div');
+        thumbN.className = 'media-thumb';
+        var innerN;
+        if (nm.isVideo) {
+          innerN = document.createElement('video');
+          innerN.src = URL.createObjectURL(nm.file);
+          innerN.muted = true;
+        } else {
+          innerN = document.createElement('img');
+          innerN.src = URL.createObjectURL(nm.file);
+        }
+        thumbN.appendChild(innerN);
+        var badgeN = document.createElement('span');
+        badgeN.className = 'media-badge';
+        badgeN.textContent = nm.isVideo ? 'vidéo' : 'nouveau';
+        thumbN.appendChild(badgeN);
+        var btnN = document.createElement('button');
+        btnN.type = 'button'; btnN.className = 'media-remove'; btnN.innerHTML = '&#10005;';
+        (function(id) { btnN.onclick = function() { removeEditNewMedia(id); }; })(nm.id);
+        thumbN.appendChild(btnN);
+        gallery.appendChild(thumbN);
+      }
+    }
+
+    function handleEditMedia(input) {
+      var files = input.files;
+      if (!files || files.length === 0) return;
+      var total = editExistingMedia.filter(function(m){ return m.kept; }).length + editNewMedia.length;
+      for (var i = 0; i < files.length; i++) {
+        if (total >= MAX_MEDIA) { alert('Maximum ' + MAX_MEDIA + ' fichiers.'); break; }
+        var f = files[i];
+        var isImage = f.type.startsWith('image/');
+        var isVideo = f.type.startsWith('video/');
+        if (!isImage && !isVideo) { alert('"' + f.name + '" ignoré : seules les images et vidéos sont acceptées.'); continue; }
+        if (f.size > MAX_FILE_SIZE) { alert('"' + f.name + '" trop volumineux (max 100 MB).'); continue; }
+        editNewMedia.push({ id: ++mediaIdCounter, file: f, isVideo: isVideo });
+        total++;
+      }
+      input.value = '';
+      renderEditMedia();
+    }
+
+    function removeEditExistingMedia(id) {
+      for (var i = 0; i < editExistingMedia.length; i++) {
+        if (editExistingMedia[i].id === id) { editExistingMedia[i].kept = false; break; }
+      }
+      renderEditMedia();
+    }
+
+    function removeEditNewMedia(id) {
+      editNewMedia = editNewMedia.filter(function(m) { return m.id !== id; });
+      renderEditMedia();
     }
 
     // --- Documents en mode édition ---
@@ -2455,15 +2508,6 @@
       renderEditDocs();
     }
 
-    function removeEditFile() {
-      editRemoveMedia = true;
-      editSelectedFile = null;
-      document.getElementById('edit-media-current').style.display = 'none';
-      document.getElementById('edit-preview-container').style.display = 'none';
-      document.getElementById('edit-screenshot').value = '';
-      document.getElementById('edit-drop-text').textContent = 'Cliquez pour ajouter un fichier';
-    }
-
     // --- Suppression de ticket ---
     function confirmDeleteTicket() {
       if (editingTicketIndex === null) return;
@@ -2526,27 +2570,26 @@
       btn.textContent = 'Enregistrement...';
 
       try {
-        // Étape 1a : upload du nouveau fichier screenshot/vidéo si sélectionné
-        var newAssetUrl = null;
-        var newAssetType = null;
-        if (editSelectedFile) {
-          btn.textContent = 'Upload du fichier...';
+        // Étape 1a : upload des nouvelles captures/vidéos (plusieurs possibles)
+        var uploadedNewMedia = []; // [{ url, isVideo }]
+        for (var emi = 0; emi < editNewMedia.length; emi++) {
+          var nmf = editNewMedia[emi];
+          btn.textContent = 'Upload fichier ' + (emi + 1) + '/' + editNewMedia.length + '...';
           var uploadRes = await fetch('/upload-file', {
             method: 'POST',
             headers: {
               'X-App-Password': authedPassword,
-              'X-File-Type': editSelectedFile.type,
-              'X-File-Name': encodeURIComponent(editSelectedFile.name),
+              'X-File-Type': nmf.file.type,
+              'X-File-Name': encodeURIComponent(nmf.file.name),
             },
-            body: editSelectedFile,
+            body: nmf.file,
           });
           if (uploadRes.status === 413) throw new Error('Fichier trop volumineux. Taille max : 100 MB.');
           var uploadData = await uploadRes.json();
           if (!uploadRes.ok) throw new Error(uploadData.error || 'Erreur upload fichier');
-          newAssetUrl = uploadData.assetUrl;
-          newAssetType = editSelectedFile.type;
-          btn.textContent = 'Enregistrement...';
+          uploadedNewMedia.push({ url: uploadData.assetUrl, isVideo: nmf.isVideo });
         }
+        btn.textContent = 'Enregistrement...';
 
         // Étape 1b : upload des nouveaux documents
         for (var ei = 0; ei < editNewDocs.length; ei++) {
@@ -2579,8 +2622,6 @@
         btn.textContent = 'Enregistrement...';
 
         // Étape 2 : reconstituer la description : [docs] + [media] + [text]
-        var desc = t.description || '';
-        var parsed = parseDescription(desc);
         var fullDescription = '';
 
         // Documents : conservés + nouveaux
@@ -2604,24 +2645,22 @@
           fullDescription += docLines.join('\n') + '\n\n';
         }
 
-        if (newAssetUrl) {
-          // Nouveau fichier uploadé → nouveau markdown
-          if (newAssetType && newAssetType.startsWith('video/')) {
-            fullDescription += '![video](' + newAssetUrl + ')\n\n';
-          } else {
-            fullDescription += '![screenshot](' + newAssetUrl + ')\n\n';
-          }
-        } else if (!editRemoveMedia && parsed.mediaUrl) {
-          // Conserver le media existant
-          var lines = desc.split('\n');
-          for (var i = 0; i < lines.length; i++) {
-            if (lines[i].match(/^!\[.*?\]\(.*?\)$/) || lines[i].match(/^\[.*?\]\(https:\/\/uploads\.linear\.app\/.*?\)$/)) {
-              fullDescription += lines[i] + '\n\n';
-              break;
-            }
-          }
+        // Captures : existantes conservées + nouvelles, dans l'ordre
+        var mediaLines = [];
+        for (var ke = 0; ke < editExistingMedia.length; ke++) {
+          if (!editExistingMedia[ke].kept) continue;
+          mediaLines.push(editExistingMedia[ke].type === 'video'
+            ? '![video](' + editExistingMedia[ke].url + ')'
+            : '![screenshot](' + editExistingMedia[ke].url + ')');
         }
-        // Si editRemoveMedia = true et pas de nouveau fichier → pas de media markdown
+        for (var kn = 0; kn < uploadedNewMedia.length; kn++) {
+          mediaLines.push(uploadedNewMedia[kn].isVideo
+            ? '![video](' + uploadedNewMedia[kn].url + ')'
+            : '![screenshot](' + uploadedNewMedia[kn].url + ')');
+        }
+        if (mediaLines.length > 0) {
+          fullDescription += mediaLines.join('\n') + '\n\n';
+        }
         fullDescription += description;
 
         var res = await fetch('/update-ticket', {
@@ -2658,7 +2697,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.54</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.55</div>
 </body>
 </html>
 
