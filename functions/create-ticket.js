@@ -18,7 +18,7 @@ export async function onRequestPost(context) {
     }
 
     const body = await context.request.json();
-    const { password, title, description, priority, assetUrl, projectId, ticketType, documents } = body;
+    const { password, title, description, priority, assetUrl, assetType, media, projectId, ticketType, documents } = body;
 
     // --- Auth check (admin ou client) ---
     if (!password || (password !== env.APP_PASSWORD && !(env.CLIENT_PASSWORD && password === env.CLIENT_PASSWORD))) {
@@ -85,18 +85,38 @@ export async function onRequestPost(context) {
       'Authorization': env.LINEAR_API_KEY,
     };
 
-    // --- Fichier joint (déjà uploadé via /upload-file) ---
+    // --- Fichiers joints (captures/vidéos, déjà uploadés via /upload-file) ---
     let attachmentMarkdown = '';
 
-    if (assetUrl && typeof assetUrl === 'string') {
-      // Valider que c'est bien une URL Linear
+    // Nouveau format multi-fichiers : media = [{ url, isVideo }]
+    if (Array.isArray(media) && media.length > 0) {
+      if (media.length > 20) {
+        return new Response(
+          JSON.stringify({ error: 'Trop de fichiers joints (max 20).' }),
+          { status: 400, headers }
+        );
+      }
+      const mediaLines = [];
+      for (const m of media) {
+        if (!m || typeof m.url !== 'string' || !m.url.startsWith('https://')) {
+          return new Response(
+            JSON.stringify({ error: 'URL de fichier invalide.' }),
+            { status: 400, headers }
+          );
+        }
+        mediaLines.push(m.isVideo ? `![video](${m.url})` : `![screenshot](${m.url})`);
+      }
+      attachmentMarkdown = mediaLines.join('\n') + '\n\n';
+    } else if (assetUrl && typeof assetUrl === 'string') {
+      // Compat ancien format : un seul fichier
       if (!assetUrl.startsWith('https://')) {
         return new Response(
           JSON.stringify({ error: 'URL de fichier invalide.' }),
           { status: 400, headers }
         );
       }
-      attachmentMarkdown = `![attachment](${assetUrl})\n\n`;
+      const isVid = typeof assetType === 'string' && assetType.startsWith('video/');
+      attachmentMarkdown = (isVid ? `![video](${assetUrl})` : `![screenshot](${assetUrl})`) + '\n\n';
     }
 
     // --- Documents joints (liste, liens markdown) ---
@@ -166,7 +186,7 @@ export async function onRequestPost(context) {
       }
     `;
 
-    const finalDescription = documentsMarkdown + attachmentMarkdown + `- [ ] ${description.trim()}`;
+    const finalDescription = documentsMarkdown + attachmentMarkdown + description.trim();
 
     const variables = {
       input: {
