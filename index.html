@@ -2107,10 +2107,10 @@
 
       contentEl.innerHTML = html;
 
-      // Afficher Modifier + Supprimer uniquement pour backlog et next
+      // Afficher Modifier + Supprimer pour backlog, next et version en cours (release)
       var currentState = (t.state && t.state.name) ? t.state.name : '';
       var currentCol = STATUS_TO_COLUMN[currentState] || 'backlog';
-      var canEdit = (currentCol === 'backlog' || currentCol === 'next');
+      var canEdit = (currentCol === 'backlog' || currentCol === 'next' || currentCol === 'release');
       document.getElementById('detail-view-actions').style.display = canEdit ? '' : 'none';
 
       document.getElementById('detail-overlay').classList.add('visible');
@@ -2697,7 +2697,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.55</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.56</div>
 </body>
 </html>
 
