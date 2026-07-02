@@ -233,6 +233,24 @@
       background: #1a1a2e; border-radius: 0 0 10px 10px;
     }
 
+    /* ===== Bannière "Attente retour client" (vue client) ===== */
+    #client-input-banner {
+      display: none;
+      background: rgba(242, 153, 74, 0.08);
+      border: 1px solid #f2994a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+    #client-input-banner .cib-title {
+      font-weight: 700; color: #f2994a; font-size: 15px;
+      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #client-input-banner .cib-cards { display: flex; flex-wrap: wrap; gap: 10px; }
+    #client-input-banner .ticket-card { width: 240px; margin-bottom: 0; }
+    #client-input-banner .ticket-card:hover { border-color: #f2994a; }
+
     /* Ticket card (in column) */
     .ticket-card {
       background: #1a1a1a; border: 1px solid #2a2a2a;
@@ -746,6 +764,10 @@
 
   <!-- Board -->
   <div id="tickets-section">
+    <div id="client-input-banner">
+      <div class="cib-title">⚠️ <span id="cib-count">On attend votre retour</span></div>
+      <div class="cib-cards" id="cib-cards"></div>
+    </div>
     <div class="board" id="board"></div>
   </div>
 
@@ -1244,6 +1266,7 @@
 
     // Columns config
     var COLUMNS = [
+      { key: 'clientinput', name: 'Attente retour client', color: '#ef4444', droppable: false },
       { key: 'backlog', name: 'Backlog', color: '#f2994a', droppable: true },
       { key: 'next', name: 'Prochaine version', color: '#6c63ff', droppable: true },
       { key: 'release', name: 'Version en cours', color: '#56CCF2', droppable: false },
@@ -1254,9 +1277,11 @@
 
     // Mapping Linear status → column key (aligné sur les statuts actifs Linear team Riviera Flow)
     // Statuts actifs : Backlog, Prochaine version, Version en cours, Dev in Progress, In QA,
-    //                  Ready for deployment, Deployed on Prod, Duplicate, Canceled.
+    //                  Ready for deployment, Deployed on Prod, Needs Client Input, Duplicate, Canceled.
     // Deployed on Prod, Duplicate et Canceled sont volontairement non mappés (filtrés de la board).
+    // Needs Client Input : colonne dédiée en vue admin, bannière en haut en vue client.
     var STATUS_TO_COLUMN = {
+      'Needs Client Input': 'clientinput',
       'Backlog': 'backlog',
       'Prochaine version': 'next',
       'Version en cours': 'release',
@@ -1815,6 +1840,31 @@
       });
     }
 
+    // --- Bannière "Attente retour client" (vue client uniquement) ---
+    function renderClientInputBanner(items) {
+      var banner = document.getElementById('client-input-banner');
+      if (!banner) return;
+      if (currentRole !== 'client' || !items || items.length === 0) {
+        banner.style.display = 'none';
+        return;
+      }
+      document.getElementById('cib-count').textContent =
+        'On attend votre retour — ' + items.length + ' ticket' + (items.length > 1 ? 's' : '') +
+        ' en attente de votre réponse';
+      document.getElementById('cib-cards').innerHTML = items.map(function(item) {
+        var t = item.ticket;
+        return '<div class="ticket-card" onclick="openDetail(' + item.globalIndex + ')">' +
+          '<div class="card-top">' +
+            '<span class="ticket-id">' + escapeHtml(t.identifier) + '</span>' +
+            getTypeLabelHtml(t) +
+            (t.priority && t.priority !== 0 ? '<span class="ticket-priority priority-' + t.priority + '">' + (PRIORITY_LABELS[t.priority] || '?') + '</span>' : '') +
+          '</div>' +
+          '<div class="ticket-title-card">' + escapeHtml(t.title) + '</div>' +
+        '</div>';
+      }).join('');
+      banner.style.display = 'block';
+    }
+
     // --- Build board columns ---
     function buildBoard() {
       var boardEl = document.getElementById('board');
@@ -1901,9 +1951,16 @@
         var grouped = {};
         for (var c = 0; c < COLUMNS.length; c++) grouped[COLUMNS[c].key] = [];
 
+        // Tickets "Needs Client Input" : bannière dédiée en vue client (pas de colonne)
+        var clientInputItems = [];
+
         for (var i = 0; i < ticketsData.length; i++) {
           var t = ticketsData[i];
           var stateName = (t.state && t.state.name) ? t.state.name : '';
+          if (currentRole === 'client' && stateName === 'Needs Client Input') {
+            clientInputItems.push({ ticket: t, globalIndex: i });
+            continue;
+          }
           var col = STATUS_TO_COLUMN[stateName];
           if (!col || !grouped[col]) continue; // statut non mappé (Duplicate, Canceled...) → exclu
           // Colonne "Version en production" : ne garder que les tickets du milestone cible.
@@ -1925,6 +1982,12 @@
             return pa - pb;
           });
         }
+        clientInputItems.sort(function(a, b) {
+          var pa = PRIO_ORDER[a.ticket.priority] !== undefined ? PRIO_ORDER[a.ticket.priority] : 99;
+          var pb = PRIO_ORDER[b.ticket.priority] !== undefined ? PRIO_ORDER[b.ticket.priority] : 99;
+          return pa - pb;
+        });
+        renderClientInputBanner(clientInputItems);
 
         for (var c = 0; c < COLUMNS.length; c++) {
           var colKey = COLUMNS[c].key;
@@ -2697,7 +2760,7 @@
       return d.innerHTML;
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.56</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.57</div>
 </body>
 </html>
 
