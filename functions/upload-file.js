@@ -12,6 +12,8 @@ const ALLOWED_TYPES = [
 ];
 // Flag depuis header X-File-Kind=document pour permettre tous types (PDF, docx, xlsx, zip...)
 
+import { checkAuth, serverError, linearError } from './_utils.js';
+
 export async function onRequestPost(context) {
   const { env } = context;
   const headers = { 'Content-Type': 'application/json' };
@@ -19,7 +21,7 @@ export async function onRequestPost(context) {
   try {
     // --- Auth check via header ---
     const password = context.request.headers.get('X-App-Password');
-    if (!password || (password !== env.APP_PASSWORD && !(env.CLIENT_PASSWORD && password === env.CLIENT_PASSWORD))) {
+    if (!checkAuth(password, env)) {
       return new Response(
         JSON.stringify({ error: 'Mot de passe incorrect.' }),
         { status: 401, headers }
@@ -111,18 +113,8 @@ export async function onRequestPost(context) {
 
     const uploadData = await uploadRes.json();
 
-    if (uploadData.errors) {
-      return new Response(
-        JSON.stringify({ error: `Erreur upload Linear : ${uploadData.errors.map(e => e.message).join(' | ')}` }),
-        { status: 502, headers }
-      );
-    }
-
-    if (!uploadData.data || !uploadData.data.fileUpload || !uploadData.data.fileUpload.success) {
-      return new Response(
-        JSON.stringify({ error: 'Linear a refusé l\'upload. Réponse : ' + JSON.stringify(uploadData.data) }),
-        { status: 502, headers }
-      );
+    if (uploadData.errors || !uploadData.data || !uploadData.data.fileUpload || !uploadData.data.fileUpload.success) {
+      return linearError(uploadData);
     }
 
     const uploadFile = uploadData.data.fileUpload.uploadFile;
@@ -144,8 +136,9 @@ export async function onRequestPost(context) {
     });
 
     if (!putRes.ok) {
+      console.error('[upload-file] PUT KO', putRes.status);
       return new Response(
-        JSON.stringify({ error: `Erreur upload fichier (HTTP ${putRes.status}).` }),
+        JSON.stringify({ error: 'Erreur lors de l\'upload du fichier.' }),
         { status: 502, headers }
       );
     }
@@ -157,9 +150,6 @@ export async function onRequestPost(context) {
     );
 
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: `Erreur serveur : ${err.message}` }),
-      { status: 500, headers }
-    );
+    return serverError(err);
   }
 }

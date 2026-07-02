@@ -1,6 +1,8 @@
-export async function onRequestPost(context) {
-  var headers = { 'Content-Type': 'application/json' };
+// Change le statut d'un ticket (drag & drop entre colonnes)
 
+import { UUID_RE, checkAuth, jsonError, jsonResponse, serverError, linearError, linearFetch } from './_utils.js';
+
+export async function onRequestPost(context) {
   try {
     var env = context.env;
     var body = await context.request.json();
@@ -8,90 +10,49 @@ export async function onRequestPost(context) {
     var issueId = body.issueId;
     var stateId = body.stateId;
 
-    if (!password || (password !== env.APP_PASSWORD && !(env.CLIENT_PASSWORD && password === env.CLIENT_PASSWORD))) {
-      return new Response(
-        JSON.stringify({ error: 'Mot de passe incorrect.' }),
-        { status: 401, headers: headers }
-      );
+    if (!checkAuth(password, env)) {
+      return jsonError('Mot de passe incorrect.', 401);
     }
 
     if (!issueId || typeof issueId !== 'string') {
-      return new Response(
-        JSON.stringify({ error: 'Issue ID manquant.' }),
-        { status: 400, headers: headers }
-      );
+      return jsonError('Issue ID manquant.', 400);
     }
 
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(issueId)) {
-      return new Response(
-        JSON.stringify({ error: 'Issue ID invalide.' }),
-        { status: 400, headers: headers }
-      );
+    if (!UUID_RE.test(issueId)) {
+      return jsonError('Issue ID invalide.', 400);
     }
 
     if (!stateId || typeof stateId !== 'string') {
-      return new Response(
-        JSON.stringify({ error: 'State ID manquant.' }),
-        { status: 400, headers: headers }
-      );
+      return jsonError('State ID manquant.', 400);
     }
 
-    // Seuls les statuts Shaping et Next version sont autorisés
+    // Seuls les statuts Backlog et Next version sont autorisés
     var ALLOWED_STATES = {
       'e27cf1cb-4c2c-47d1-848b-5205c8dbe4fb': true,
       'd881e3d3-0f3a-43a8-9470-62e935b10bd6': true,
     };
 
     if (!ALLOWED_STATES[stateId]) {
-      return new Response(
-        JSON.stringify({ error: 'Changement de statut non autorisé.' }),
-        { status: 403, headers: headers }
-      );
+      return jsonError('Changement de statut non autorisé.', 403);
     }
 
     if (!env.LINEAR_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: 'LINEAR_API_KEY non configurée.' }),
-        { status: 500, headers: headers }
-      );
+      return jsonError('LINEAR_API_KEY non configurée.', 500);
     }
 
-    var mutation = 'mutation { issueUpdate(id: "' + issueId + '", input: { stateId: "' + stateId + '" }) { success issue { id state { name } } } }';
+    // Mutation avec variables GraphQL (pas d'interpolation de chaînes)
+    var mutation = 'mutation UpdateIssueState($id: String!, $stateId: String!) { issueUpdate(id: $id, input: { stateId: $stateId }) { success issue { id state { name } } } }';
 
-    var linearRes = await fetch('https://api.linear.app/graphql', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': env.LINEAR_API_KEY,
-      },
-      body: JSON.stringify({ query: mutation }),
-    });
-
+    var linearRes = await linearFetch(env, mutation, { id: issueId, stateId: stateId });
     var linearData = await linearRes.json();
 
-    if (linearData.errors) {
-      return new Response(
-        JSON.stringify({ error: 'Erreur API Linear : ' + linearData.errors.map(function(e) { return e.message; }).join(' | ') }),
-        { status: 502, headers: headers }
-      );
+    if (linearData.errors || !(linearData.data && linearData.data.issueUpdate && linearData.data.issueUpdate.success)) {
+      return linearError(linearData);
     }
 
-    if (!(linearData.data && linearData.data.issueUpdate && linearData.data.issueUpdate.success)) {
-      return new Response(
-        JSON.stringify({ error: 'Linear a refusé la mise à jour.' }),
-        { status: 502, headers: headers }
-      );
-    }
-
-    return new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers: headers }
-    );
+    return jsonResponse({ success: true }, 200);
 
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: 'Erreur serveur : ' + (err && err.message ? err.message : String(err)) }),
-      { status: 500, headers: headers }
-    );
+    return serverError(err);
   }
 }

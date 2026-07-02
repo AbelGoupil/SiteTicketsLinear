@@ -1,6 +1,8 @@
 // Met à jour un ticket Linear (titre, description, priorité, labels/type)
 // Appelé depuis le mode édition du popup detail
 
+import { UUID_RE, TYPE_LABELS, checkAuth, serverError, linearError } from './_utils.js';
+
 const MAX_TITLE_LENGTH = 200;
 const MAX_DESCRIPTION_LENGTH = 5000;
 
@@ -13,7 +15,7 @@ export async function onRequestPost(context) {
     var { password, issueId, title, description, priority, ticketType } = body;
 
     // --- Auth ---
-    if (!password || (password !== env.APP_PASSWORD && !(env.CLIENT_PASSWORD && password === env.CLIENT_PASSWORD))) {
+    if (!checkAuth(password, env)) {
       return new Response(
         JSON.stringify({ error: 'Mot de passe incorrect.' }),
         { status: 401, headers }
@@ -28,7 +30,7 @@ export async function onRequestPost(context) {
       );
     }
 
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(issueId)) {
+    if (!UUID_RE.test(issueId)) {
       return new Response(
         JSON.stringify({ error: 'Issue ID invalide.' }),
         { status: 400, headers }
@@ -71,13 +73,7 @@ export async function onRequestPost(context) {
       );
     }
 
-    // --- Mapping ticketType → labelId ---
-    var TYPE_LABELS = {
-      bug: '7d309bb5-6855-4088-9cc7-9cb534ed1868',
-      amelioration: 'c27e7bee-464a-4621-88cc-a96ac8eedb02',
-      idee: '7958f0fe-ef75-4a74-bd24-f88abde1edbf',
-    };
-
+    // --- Mapping ticketType → labelId (mapping partagé dans _utils.js) ---
     if (!ticketType || !TYPE_LABELS[ticketType]) {
       return new Response(
         JSON.stringify({ error: 'Type de ticket invalide.' }),
@@ -133,18 +129,8 @@ export async function onRequestPost(context) {
 
     var linearData = await linearRes.json();
 
-    if (linearData.errors) {
-      return new Response(
-        JSON.stringify({ error: 'Erreur API Linear : ' + linearData.errors.map(function(e) { return e.message; }).join(' | ') }),
-        { status: 502, headers }
-      );
-    }
-
-    if (!(linearData.data && linearData.data.issueUpdate && linearData.data.issueUpdate.success)) {
-      return new Response(
-        JSON.stringify({ error: 'Linear a refusé la mise à jour.' }),
-        { status: 502, headers }
-      );
+    if (linearData.errors || !(linearData.data && linearData.data.issueUpdate && linearData.data.issueUpdate.success)) {
+      return linearError(linearData);
     }
 
     return new Response(
@@ -153,9 +139,6 @@ export async function onRequestPost(context) {
     );
 
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: 'Erreur serveur : ' + (err && err.message ? err.message : String(err)) }),
-      { status: 500, headers }
-    );
+    return serverError(err);
   }
 }

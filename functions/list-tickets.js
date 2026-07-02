@@ -1,3 +1,5 @@
+import { UUID_RE, checkAuth, serverError, linearError } from './_utils.js';
+
 export async function onRequestPost(context) {
   const headers = { 'Content-Type': 'application/json' };
 
@@ -7,15 +9,13 @@ export async function onRequestPost(context) {
     const { password, projectId } = body;
 
     // --- Auth check (admin = APP_PASSWORD, client = CLIENT_PASSWORD) ---
-    const isAdmin = password && password === env.APP_PASSWORD;
-    const isClient = password && env.CLIENT_PASSWORD && password === env.CLIENT_PASSWORD;
-    if (!isAdmin && !isClient) {
+    const role = checkAuth(password, env);
+    if (!role) {
       return new Response(
         JSON.stringify({ error: 'Mot de passe incorrect.' }),
         { status: 401, headers }
       );
     }
-    const role = isAdmin ? 'admin' : 'client';
 
     if (!projectId || typeof projectId !== 'string') {
       return new Response(
@@ -25,7 +25,7 @@ export async function onRequestPost(context) {
     }
 
     // Valider format UUID pour éviter injection GraphQL
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(projectId)) {
+    if (!UUID_RE.test(projectId)) {
       return new Response(
         JSON.stringify({ error: 'Project ID invalide.' }),
         { status: 400, headers }
@@ -57,10 +57,7 @@ export async function onRequestPost(context) {
     const linearData = await linearRes.json();
 
     if (linearData.errors) {
-      return new Response(
-        JSON.stringify({ error: 'Erreur API Linear : ' + linearData.errors.map(function(e) { return e.message; }).join(' | ') }),
-        { status: 502, headers }
-      );
+      return linearError(linearData);
     }
 
     var issues = [];
@@ -82,9 +79,6 @@ export async function onRequestPost(context) {
     );
 
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: 'Erreur serveur list-tickets : ' + (err && err.message ? err.message : String(err)) }),
-      { status: 500, headers }
-    );
+    return serverError(err);
   }
 }

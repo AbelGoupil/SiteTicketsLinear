@@ -1,16 +1,33 @@
 // Proxy sécurisé pour les fichiers Linear (images/vidéos)
 // Les fichiers Linear sont privés (URLs signées expirent en ~5min)
 // Cette function fetch les fichiers côté serveur avec l'API key Linear
+//
+// Auth : header X-App-Password OU cookie rf_auth (posé par le front à la connexion).
+// Le mot de passe ne transite JAMAIS en query string (logs, historique, referer).
+
+import { checkAuth, serverError } from './_utils.js';
 
 const ALLOWED_HOSTS = ['uploads.linear.app'];
 
-export async function onRequestGet(context) {
-  const { env } = context;
-  const url = new URL(context.request.url);
+function getCookie(request, name) {
+  const cookieHeader = request.headers.get('Cookie') || '';
+  const parts = cookieHeader.split(';');
+  for (const part of parts) {
+    const [k, ...v] = part.trim().split('=');
+    if (k === name) {
+      try { return decodeURIComponent(v.join('=')); } catch { return v.join('='); }
+    }
+  }
+  return null;
+}
 
-  // --- Auth check via query param ---
-  const password = url.searchParams.get('p');
-  if (!password || (password !== env.APP_PASSWORD && !(env.CLIENT_PASSWORD && password === env.CLIENT_PASSWORD))) {
+export async function onRequestGet(context) {
+  const { env, request } = context;
+  const url = new URL(request.url);
+
+  // --- Auth check : header ou cookie ---
+  const password = request.headers.get('X-App-Password') || getCookie(request, 'rf_auth');
+  if (!checkAuth(password, env)) {
     return new Response('Non autorisé.', { status: 401 });
   }
 
@@ -39,33 +56,25 @@ export async function onRequestGet(context) {
 
     // Essai 2 : si le token est expiré, re-fetch avec l'API key Linear
     if (!fileRes.ok) {
-      // Retirer le query param signature de l'URL
       const cleanUrl = new URL(targetUrl);
       cleanUrl.searchParams.delete('signature');
       const baseUrl = cleanUrl.toString();
 
       fileRes = await fetch(baseUrl, {
-        headers: {
-          'Authorization': env.LINEAR_API_KEY,
-        },
+        headers: { 'Authorization': env.LINEAR_API_KEY },
       });
-    }
 
-    // Essai 3 : si ça ne marche toujours pas, essayer avec Bearer
-    if (!fileRes.ok) {
-      const cleanUrl = new URL(targetUrl);
-      cleanUrl.searchParams.delete('signature');
-      const baseUrl = cleanUrl.toString();
-
-      fileRes = await fetch(baseUrl, {
-        headers: {
-          'Authorization': 'Bearer ' + env.LINEAR_API_KEY,
-        },
-      });
+      // Essai 3 : si ça ne marche toujours pas, essayer avec Bearer
+      if (!fileRes.ok) {
+        fileRes = await fetch(baseUrl, {
+          headers: { 'Authorization': 'Bearer ' + env.LINEAR_API_KEY },
+        });
+      }
     }
 
     if (!fileRes.ok) {
-      return new Response('Erreur récupération fichier (' + fileRes.status + ').', { status: 502 });
+      console.error('[get-file] fetch Linear KO', fileRes.status, parsedTarget.pathname);
+      return new Response('Erreur récupération fichier.', { status: 502 });
     }
 
     // --- Retourner le fichier avec les bons headers ---
@@ -75,11 +84,11 @@ export async function onRequestGet(context) {
       status: 200,
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=86400', // cache 24h côté navigateur
+        'Cache-Control': 'private, max-age=86400', // cache 24h navigateur uniquement (fichiers privés)
         'X-Content-Type-Options': 'nosniff',
       },
     });
   } catch (err) {
-    return new Response('Erreur serveur : ' + err.message, { status: 500 });
+    return serverError(err);
   }
 }

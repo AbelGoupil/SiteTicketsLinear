@@ -1,3 +1,5 @@
+import { TYPE_LABELS, checkAuth, serverError, linearError } from './_utils.js';
+
 // Limites
 const MAX_TITLE_LENGTH = 200;
 const MAX_DESCRIPTION_LENGTH = 5000;
@@ -21,7 +23,7 @@ export async function onRequestPost(context) {
     const { password, title, description, priority, assetUrl, assetType, media, projectId, ticketType, documents } = body;
 
     // --- Auth check (admin ou client) ---
-    if (!password || (password !== env.APP_PASSWORD && !(env.CLIENT_PASSWORD && password === env.CLIENT_PASSWORD))) {
+    if (!checkAuth(password, env)) {
       return new Response(
         JSON.stringify({ error: 'Mot de passe incorrect.' }),
         { status: 401, headers }
@@ -64,13 +66,7 @@ export async function onRequestPost(context) {
       );
     }
 
-    // --- Validation et mapping ticketType → labelId ---
-    var TYPE_LABELS = {
-      bug: '7d309bb5-6855-4088-9cc7-9cb534ed1868',
-      amelioration: 'c27e7bee-464a-4621-88cc-a96ac8eedb02',
-      idee: '7958f0fe-ef75-4a74-bd24-f88abde1edbf',
-    };
-
+    // --- Validation et mapping ticketType → labelId (mapping partagé dans _utils.js) ---
     if (!ticketType || !TYPE_LABELS[ticketType]) {
       return new Response(
         JSON.stringify({ error: 'Type de ticket invalide. Valeurs acceptées : bug, amelioration, idee.' }),
@@ -208,19 +204,8 @@ export async function onRequestPost(context) {
 
     const linearData = await linearRes.json();
 
-    if (linearData.errors) {
-      const errorMessages = linearData.errors.map(e => e.message).join(' | ');
-      return new Response(
-        JSON.stringify({ error: `Erreur API Linear : ${errorMessages}` }),
-        { status: 502, headers }
-      );
-    }
-
-    if (!linearData.data || !linearData.data.issueCreate || !linearData.data.issueCreate.success) {
-      return new Response(
-        JSON.stringify({ error: 'Linear a refusé la création du ticket. Réponse : ' + JSON.stringify(linearData) }),
-        { status: 502, headers }
-      );
+    if (linearData.errors || !linearData.data || !linearData.data.issueCreate || !linearData.data.issueCreate.success) {
+      return linearError(linearData);
     }
 
     // --- Succès ---
@@ -239,10 +224,7 @@ export async function onRequestPost(context) {
     );
 
   } catch (err) {
-    // Ne pas exposer les détails d'erreur internes en prod
-    return new Response(
-      JSON.stringify({ error: `Erreur serveur : ${err.message}` }),
-      { status: 500, headers }
-    );
+    // Ne pas exposer les détails d'erreur internes en prod (log côté Cloudflare)
+    return serverError(err);
   }
 }

@@ -1,60 +1,41 @@
 // Supprime définitivement un ticket Linear
 // Appelé depuis le bouton Supprimer du popup detail
 
-export async function onRequestPost(context) {
-  var headers = { 'Content-Type': 'application/json' };
+import { UUID_RE, checkAuth, jsonError, jsonResponse, serverError, linearError, linearFetch } from './_utils.js';
 
+export async function onRequestPost(context) {
   try {
     var env = context.env;
     var body = await context.request.json();
     var { password, issueId } = body;
 
     // --- Auth ---
-    if (!password || (password !== env.APP_PASSWORD && !(env.CLIENT_PASSWORD && password === env.CLIENT_PASSWORD))) {
-      return new Response(
-        JSON.stringify({ error: 'Mot de passe incorrect.' }),
-        { status: 401, headers }
-      );
+    if (!checkAuth(password, env)) {
+      return jsonError('Mot de passe incorrect.', 401);
     }
 
     // --- Validation ---
     if (!issueId || typeof issueId !== 'string') {
-      return new Response(
-        JSON.stringify({ error: 'Issue ID manquant.' }),
-        { status: 400, headers }
-      );
+      return jsonError('Issue ID manquant.', 400);
     }
 
-    // --- Suppression définitive via Linear GraphQL ---
-    var mutation = `mutation { issueDelete(id: "${issueId}") { success } }`;
+    if (!UUID_RE.test(issueId)) {
+      return jsonError('Issue ID invalide.', 400);
+    }
 
-    var linearRes = await fetch('https://api.linear.app/graphql', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': env.LINEAR_API_KEY,
-      },
-      body: JSON.stringify({ query: mutation }),
-    });
+    // --- Suppression définitive via Linear GraphQL (variables, pas d'interpolation) ---
+    var mutation = 'mutation DeleteIssue($id: String!) { issueDelete(id: $id) { success } }';
 
+    var linearRes = await linearFetch(env, mutation, { id: issueId });
     var linearData = await linearRes.json();
 
-    if (linearData.errors) {
-      return new Response(
-        JSON.stringify({ error: 'Erreur Linear : ' + linearData.errors[0].message }),
-        { status: 500, headers }
-      );
+    if (linearData.errors || !(linearData.data && linearData.data.issueDelete && linearData.data.issueDelete.success)) {
+      return linearError(linearData);
     }
 
-    return new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers }
-    );
+    return jsonResponse({ success: true }, 200);
 
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: 'Erreur serveur : ' + err.message }),
-      { status: 500, headers }
-    );
+    return serverError(err);
   }
 }

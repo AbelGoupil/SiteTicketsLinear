@@ -1,4 +1,7 @@
 // Mapping slug URL → configuration Linear du projet
+
+import { serverError } from './_utils.js';
+
 const PROJECTS = {
   myfnbpass: {
     name: 'myFnB Pass',
@@ -64,9 +67,6 @@ export async function onRequestPost(context) {
     );
 
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: `Erreur serveur : ${err.message}` }),
-      { status: 500, headers }
-    );
+    return serverError(err);
   }
 }
