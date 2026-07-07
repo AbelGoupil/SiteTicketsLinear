@@ -1410,6 +1410,7 @@
         document.getElementById('subtitle').innerHTML =
           'Créer un ticket pour <span class="project-name">' + escapeHtml(currentProject.name) + '</span>';
         document.getElementById('auth-screen').style.display = 'block';
+        document.getElementById('password').focus();
       } catch (err) {
         document.getElementById('landing-screen').style.display = 'block';
         document.querySelector('.landing').innerHTML =
@@ -2768,7 +2769,7 @@
         .replace(/'/g, '&#39;');
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.58</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.59</div>
 </body>
 </html>
 
