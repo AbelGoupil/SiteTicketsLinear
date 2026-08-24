@@ -1307,6 +1307,18 @@
       'Ready for deployment': 'release',
       'Deployed on Prod': 'prod',
     };
+
+    // Statut "Needs Client Input" : identifie par son ID Linear (groupe "unstarted"),
+    // et non par son nom, pour rester insensible a d'eventuels statuts homonymes.
+    var NEEDS_CLIENT_INPUT_STATE_ID = '8eb1ac5e-12fa-4f99-af86-1cdb8d5e2816';
+
+    // Colonne d'un ticket : par ID pour Needs Client Input, par nom de statut pour le reste.
+    // Retourne undefined si le statut n'est pas mappe (Duplicate, Canceled...).
+    function getTicketColumn(ticket) {
+      var st = (ticket && ticket.state) ? ticket.state : {};
+      if (st.id === NEEDS_CLIENT_INPUT_STATE_ID) return STATUS_TO_COLUMN['Needs Client Input'];
+      return STATUS_TO_COLUMN[st.name || ''];
+    }
     // --- Milestones affichés en tête de colonnes, PAR PROJET (clé = slug URL) ---
     // prod    = colonne "Version en production" (filtre les tickets + en-tête)
     // release = colonne "Version en cours" (en-tête + base du badge "leftover")
@@ -1959,12 +1971,12 @@
 
         for (var i = 0; i < ticketsData.length; i++) {
           var t = ticketsData[i];
-          var stateName = (t.state && t.state.name) ? t.state.name : '';
-          if (currentRole === 'client' && stateName === 'Needs Client Input') {
+          var stateId = (t.state && t.state.id) ? t.state.id : '';
+          if (currentRole === 'client' && stateId === NEEDS_CLIENT_INPUT_STATE_ID) {
             clientInputItems.push({ ticket: t, globalIndex: i });
             continue;
           }
-          var col = STATUS_TO_COLUMN[stateName];
+          var col = getTicketColumn(t);
           if (!col || !grouped[col]) continue; // statut non mappé (Duplicate, Canceled...) → exclu
           // Colonne "Version en production" : ne garder que les tickets du milestone cible.
           // Si aucun milestone prod défini pour le projet → colonne vide.
@@ -2046,8 +2058,7 @@
       var ticket = ticketsData[ticketIndex];
       if (!ticket) return;
 
-      var currentState = (ticket.state && ticket.state.name) ? ticket.state.name : '';
-      var currentCol = STATUS_TO_COLUMN[currentState] || 'backlog';
+      var currentCol = getTicketColumn(ticket) || 'backlog';
       if (currentCol === targetCol) return;
 
       var newStateId = COLUMN_TO_STATE[targetCol];
@@ -2174,8 +2185,7 @@
       contentEl.innerHTML = html;
 
       // Afficher Modifier + Supprimer pour backlog, next et version en cours (release)
-      var currentState = (t.state && t.state.name) ? t.state.name : '';
-      var currentCol = STATUS_TO_COLUMN[currentState] || 'backlog';
+      var currentCol = getTicketColumn(t) || 'backlog';
       var canEdit = (currentCol === 'backlog' || currentCol === 'next' || currentCol === 'release');
       document.getElementById('detail-view-actions').style.display = canEdit ? '' : 'none';
 
@@ -2769,7 +2779,7 @@
         .replace(/'/g, '&#39;');
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.61</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.62</div>
 </body>
 </html>
 
