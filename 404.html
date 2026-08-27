@@ -1372,6 +1372,17 @@
     var milestoneDates = {};
     // Noms d'origine des milestones (nom minuscule → nom affichable). Pour les labels des traits.
     var milestoneLabels = {};
+    // IDs Linear des milestones (nom minuscule → id). Sert au drag & drop, qui rattache
+    // automatiquement le ticket au milestone de la prochaine version (ou le retire).
+    var milestoneIds = {};
+
+    // ID Linear du milestone "prochaine version" du projet courant (null si non défini
+    // dans PROJECT_MILESTONES ou si le milestone n'existe pas côté Linear).
+    function nextMilestoneId() {
+      var next = projectMilestones().next;
+      if (!next) return null;
+      return milestoneIds[next.trim().toLowerCase()] || null;
+    }
     // Rôle courant (déterminé par le serveur à l'auth) : 'admin' (6 col) ou 'client' (3 col)
     var currentRole = 'admin';
 
@@ -1984,11 +1995,13 @@
         // Construire la map nom milestone (minuscule) → date cible ISO + nom affichable
         milestoneDates = {};
         milestoneLabels = {};
+        milestoneIds = {};
         (data.milestones || []).forEach(function(m) {
           if (!m || !m.name) return;
           var lower = m.name.trim().toLowerCase();
           milestoneLabels[lower] = m.name.trim();
           if (m.targetDate) milestoneDates[lower] = m.targetDate;
+          if (m.id) milestoneIds[lower] = m.id;
         });
         updateColumnsVersionInfo();
 
@@ -2093,15 +2106,26 @@
       var newStateId = COLUMN_TO_STATE[targetCol];
       if (!newStateId) return;
 
+      // Le milestone suit la colonne : drop dans "Prochaine version" → milestone de la
+      // prochaine version, drop dans "Backlog" → aucun milestone. Si le projet n'a pas de
+      // prochaine version définie, seul le statut change (clé absente = milestone inchangé).
+      var payload = {
+        password: authedPassword,
+        issueId: ticket.id,
+        stateId: newStateId
+      };
+      if (targetCol === 'backlog') {
+        payload.milestoneId = null;
+      } else if (targetCol === 'next') {
+        var nextMsId = nextMilestoneId();
+        if (nextMsId) payload.milestoneId = nextMsId;
+      }
+
       try {
         var res = await fetch('/update-ticket-status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            password: authedPassword,
-            issueId: ticket.id,
-            stateId: newStateId
-          })
+          body: JSON.stringify(payload)
         });
         var data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erreur');
@@ -2808,7 +2832,7 @@
         .replace(/'/g, '&#39;');
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.63</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.64</div>
 </body>
 </html>
 
