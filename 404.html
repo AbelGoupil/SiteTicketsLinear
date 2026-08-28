@@ -198,7 +198,7 @@
     }
 
     .board-col-header {
-      display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
       padding: 12px 14px; font-size: 13px; font-weight: 600;
       color: #fff; border-bottom: 1px solid #2a2a2a;
       flex-shrink: 0;
@@ -212,12 +212,22 @@
     .col-count {
       font-size: 11px; color: #666; font-weight: 400;
       background: #2a2a2a; padding: 1px 7px; border-radius: 10px;
-      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    /* Compteur de colonne : détail (bugs / tailles) + total, sur la même ligne, à droite */
+    .col-count-group {
+      margin-left: auto; display: flex; align-items: center;
+      gap: 6px; min-width: 0;
+    }
+    .col-count-detail {
+      font-size: 10px; color: #6e6e6e; font-weight: 400;
+      line-height: 1.3; text-align: right;
     }
 
     /* Header empilé (colonne Version en production : titre + n° version/date) */
     .board-col-header--stack { flex-direction: column; align-items: stretch; gap: 4px; }
-    .board-col-header--stack .col-header-main { display: flex; align-items: center; gap: 8px; }
+    .board-col-header--stack .col-header-main { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .col-version-info {
       font-size: 11px; padding-left: 17px; line-height: 1.3;
     }
@@ -283,6 +293,14 @@
     }
     .ticket-size-badge--none {
       background: #252525; color: #666; font-weight: 500;
+    }
+
+    /* Badge "en prod" : ticket deja livre mais toujours affiche avec la version en cours */
+    .ticket-prod-badge {
+      font-size: 9px; font-weight: 700; padding: 1px 6px;
+      border-radius: 3px; white-space: nowrap;
+      background: rgba(34, 197, 94, 0.18); color: #22c55e;
+      letter-spacing: 0.3px; text-transform: uppercase;
     }
 
     .ticket-leftover-badge {
@@ -1048,7 +1066,9 @@
     // Règles :
     //  - "Prochaine version (retenu)" = statut Prochaine version
     //  - "Version en cours" = Version en cours + Dev in Progress + In QA + Ready for deployment
-    //  - "Deployed on Prod" est exclu du budget (déjà livré)
+    //  - "Deployed on Prod" suit deployedTicketScope() : version livrée → bucket prod (hors
+    //    budget), version en cours ou sans milestone → bucket "Version en cours" (le prix de la
+    //    version ne baisse donc pas quand un ticket part en prod), version passée → ignoré
     //  - Les bugs sont inclus dans le forfait : on les compte dans leur bucket mais à 0€
     // Retourne : {next: {...}, inProgress: {...}, total: €, unestimated: n}
     function computePlanMetrics(tickets) {
@@ -1085,11 +1105,13 @@
           bucket = isNextMilestoneTicket(t) ? next : inProg;
         }
         else if (stateName === 'Deployed on Prod') {
-          // Version en production : uniquement les tickets du milestone prod cible
-          if (!prodMsLower) continue;
-          var pMs = (t.projectMilestone && t.projectMilestone.name) ? t.projectMilestone.name.trim().toLowerCase() : '';
-          if (pMs !== prodMsLower) continue;
-          bucket = prod;
+          // Meme regle que getTicketColumn : milestone prod → version en production,
+          // milestone de la version en cours (ou aucun) → budget de la version en cours.
+          var scope = deployedTicketScope(t);
+          if (scope === 'next') bucket = next;
+          else if (scope === 'prod') bucket = prodMsLower ? prod : null;
+          else if (scope === 'current') bucket = inProg;
+          if (!bucket) continue;
         }
         else continue; // backlog / duplicate / canceled → hors budget
 
@@ -1282,7 +1304,10 @@
     // Mapping Linear status → column key (aligné sur les statuts actifs Linear team Riviera Flow)
     // Statuts actifs : Backlog, Prochaine version, Version en cours, Dev in Progress, In QA,
     //                  Ready for deployment, Deployed on Prod, Needs Client Input, Duplicate, Canceled.
-    // Deployed on Prod, Duplicate et Canceled sont volontairement non mappés (filtrés de la board).
+    // Duplicate et Canceled sont volontairement non mappés (filtrés de la board).
+    // Deployed on Prod : cas particulier géré par deployedTicketScope() — le ticket reste dans
+    // la colonne de la version en cours ("Prêt pour livraison" en admin, "Version en cours" en
+    // vue client) tant qu'il n'est pas rattaché à une version déjà livrée.
     // Needs Client Input : colonne dédiée en vue admin, bannière en haut en vue client.
     var STATUS_TO_COLUMN = {
       'Needs Client Input': 'clientinput',
@@ -1333,6 +1358,31 @@
       return !!ms && ms.toLowerCase() === next.toLowerCase();
     }
 
+    // Colonne "version en cours" de la vue courante : en admin le découpage par statut se
+    // termine par "Prêt pour livraison", en vue client les 4 statuts sont agrégés dans
+    // "Version en cours".
+    function currentVersionColumnKey() {
+      return (currentRole === 'client') ? 'release' : 'done';
+    }
+
+    // Classement d'un ticket au statut "Deployed on Prod" (logique partagée board + budget) :
+    //   'next'    → rattaché au milestone de la prochaine version (règle milestone > statut)
+    //   'prod'    → rattaché au milestone de la version en production (colonne dédiée, vue client)
+    //   'current' → version en cours ou aucun milestone : reste dans la colonne de la version
+    //               en cours au lieu de disparaître de la board une fois livré
+    //   null      → version passée : hors board / hors budget
+    function deployedTicketScope(ticket) {
+      if (isNextMilestoneTicket(ticket)) return 'next';
+      var cfg = projectMilestones();
+      var ms = ticketMilestoneName(ticket).toLowerCase();
+      var prodMs = cfg.prod ? cfg.prod.trim().toLowerCase() : '';
+      var relMs = cfg.release ? cfg.release.trim().toLowerCase() : '';
+      if (prodMs && ms === prodMs) return 'prod';
+      if (!ms) return 'current';
+      if (relMs && ms === relMs) return 'current';
+      return null;
+    }
+
     // Colonne d'un ticket : par ID pour Needs Client Input, par nom de statut pour le reste.
     // Retourne undefined si le statut n'est pas mappe (Duplicate, Canceled...).
     // REGLE MILESTONE > STATUT : un ticket rattache au milestone de la prochaine version
@@ -1344,6 +1394,15 @@
       var col = (st.id === NEEDS_CLIENT_INPUT_STATE_ID)
         ? STATUS_TO_COLUMN['Needs Client Input']
         : STATUS_TO_COLUMN[st.name || ''];
+      // "Deployed on Prod" : le ticket reste affiché avec la version en cours tant qu'il n'a
+      // pas basculé dans une version livrée, pour ne pas le perdre au moment de la mise en prod.
+      if ((st.name || '') === 'Deployed on Prod') {
+        var scope = deployedTicketScope(ticket);
+        if (scope === 'next') return 'next';
+        if (scope === 'prod') return (col === 'prod') ? 'prod' : undefined;
+        if (scope === 'current') return currentVersionColumnKey();
+        return undefined;
+      }
       if (col && CURRENT_VERSION_COLUMNS.indexOf(col) !== -1 && isNextMilestoneTicket(ticket)) {
         return 'next';
       }
@@ -1413,6 +1472,16 @@
       var ms = ticketMilestoneName(ticket);
       if (!ms || ms.toLowerCase() === rel.toLowerCase()) return '';
       return '<span class="ticket-leftover-badge" title="Reliquat de ' + escapeHtml(ms) + '">leftover</span>';
+    }
+
+    // Badge "en prod" : ticket au statut Deployed on Prod affiché dans la colonne de la
+    // version en cours (admin : "Prêt pour livraison", client : "Version en cours"), pour
+    // distinguer d'un coup d'œil les tickets déjà livrés de ceux qui restent à livrer.
+    function getProdBadgeHtml(ticket, colKey) {
+      if (colKey === 'prod') return ''; // colonne "Version en production" : tous livrés
+      var stateName = (ticket && ticket.state && ticket.state.name) ? ticket.state.name : '';
+      if (stateName !== 'Deployed on Prod') return '';
+      return '<span class="ticket-prod-badge" title="Déjà déployé en production">en prod</span>';
     }
 
     // Mapping column key → Linear state ID (for drag & drop)
@@ -1920,6 +1989,29 @@
       banner.style.display = 'block';
     }
 
+    // Détail du contenu d'une colonne, affiché en ligne à côté du total :
+    // "3 bugs · 2 XS · 1 M · 1 –". Meme convention que le budget : un bug est compte comme bug
+    // (jamais dans sa taille), les tickets non estimes sont regroupes sous "–".
+    function columnBreakdownHtml(items) {
+      if (!items || items.length === 0) return '';
+      var bugs = 0, unestimated = 0;
+      var sizes = { XS: 0, S: 0, M: 0, L: 0, XL: 0 };
+      for (var i = 0; i < items.length; i++) {
+        var t = items[i].ticket;
+        if (isBugTicket(t)) { bugs++; continue; }
+        var size = getTicketSize(t);
+        if (size && sizes[size] !== undefined) sizes[size]++;
+        else unestimated++;
+      }
+      var parts = [];
+      if (bugs) parts.push(bugs + ' bug' + (bugs > 1 ? 's' : ''));
+      ['XS', 'S', 'M', 'L', 'XL'].forEach(function(sz) {
+        if (sizes[sz]) parts.push(sizes[sz] + ' ' + sz);
+      });
+      if (unestimated) parts.push('<span title="Non estimé">' + unestimated + ' –</span>');
+      return parts.join(' · ');
+    }
+
     // --- Build board columns ---
     function buildBoard() {
       var boardEl = document.getElementById('board');
@@ -1934,7 +2026,10 @@
               '<div class="col-header-main">' +
                 '<span class="col-dot" style="background:' + col.color + '"></span> ' +
                 col.name +
-                ' <span class="col-count" id="count-' + col.key + '">0</span>' +
+                ' <span class="col-count-group">' +
+                  '<span class="col-count-detail" id="detail-' + col.key + '"></span>' +
+                  '<span class="col-count" id="count-' + col.key + '">0</span>' +
+                '</span>' +
               '</div>' +
               '<div class="col-version-info" id="verinfo-' + col.key + '"></div>' +
               '<div class="col-version-price" id="price-' + col.key + '"></div>' +
@@ -1944,7 +2039,10 @@
             '<div class="board-col-header">' +
               '<span class="col-dot" style="background:' + col.color + '"></span> ' +
               col.name +
-              ' <span class="col-count" id="count-' + col.key + '">0</span>' +
+              ' <span class="col-count-group">' +
+                  '<span class="col-count-detail" id="detail-' + col.key + '"></span>' +
+                  '<span class="col-count" id="count-' + col.key + '">0</span>' +
+                '</span>' +
             '</div>';
         }
         html += '<div class="board-col" id="col-' + col.key + '">' +
@@ -2054,6 +2152,8 @@
           var isDraggable = (colKey === 'backlog' || colKey === 'next');
 
           countEl.textContent = items.length;
+          var detailEl = document.getElementById('detail-' + colKey);
+          if (detailEl) detailEl.innerHTML = columnBreakdownHtml(items);
 
           if (items.length === 0) {
             bodyEl.innerHTML = '<div class="no-tickets">Aucun ticket</div>';
@@ -2066,6 +2166,7 @@
                   '<span class="ticket-id">' + escapeHtml(t.identifier) + '</span>' +
                   getTypeLabelHtml(t) +
                   getSizeBadgeHtml(t) +
+                  getProdBadgeHtml(t, colKey) +
                   getLeftoverBadgeHtml(t, colKey) +
                   (t.priority && t.priority !== 0 ? '<span class="ticket-priority priority-' + t.priority + '">' + (PRIORITY_LABELS[t.priority] || '?') + '</span>' : '') +
                 '</div>' +
@@ -2832,7 +2933,7 @@
         .replace(/'/g, '&#39;');
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.64</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.65</div>
 </body>
 </html>
 
