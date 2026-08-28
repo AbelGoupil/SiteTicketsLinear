@@ -1474,10 +1474,12 @@
       return '<span class="ticket-leftover-badge" title="Reliquat de ' + escapeHtml(ms) + '">leftover</span>';
     }
 
-    // Badge "en prod" : ticket au statut Deployed on Prod affiché dans la colonne de la
-    // version en cours (admin : "Prêt pour livraison", client : "Version en cours"), pour
-    // distinguer d'un coup d'œil les tickets déjà livrés de ceux qui restent à livrer.
+    // Badge "en prod" : ticket au statut Deployed on Prod affiché dans la colonne
+    // "Prêt pour livraison", pour distinguer d'un coup d'œil les tickets déjà livrés de ceux
+    // qui restent à livrer. VUE ADMIN UNIQUEMENT : côté client la colonne "Version en cours"
+    // ne fait pas la distinction, le détail des statuts n'y est pas exposé.
     function getProdBadgeHtml(ticket, colKey) {
+      if (currentRole === 'client') return '';
       if (colKey === 'prod') return ''; // colonne "Version en production" : tous livrés
       var stateName = (ticket && ticket.state && ticket.state.name) ? ticket.state.name : '';
       if (stateName !== 'Deployed on Prod') return '';
@@ -2933,7 +2935,7 @@
         .replace(/'/g, '&#39;');
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.65</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.66</div>
 </body>
 </html>
 
