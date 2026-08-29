@@ -1435,12 +1435,50 @@
     // automatiquement le ticket au milestone de la prochaine version (ou le retire).
     var milestoneIds = {};
 
-    // ID Linear du milestone "prochaine version" du projet courant (null si non défini
-    // dans PROJECT_MILESTONES ou si le milestone n'existe pas côté Linear).
+    // Remplit les maps milestones (dates / libellés / ids) depuis la réponse /list-tickets.
+    // Extrait de loadTickets pour pouvoir rafraîchir ces maps seules avant un drag & drop.
+    function applyMilestoneData(list) {
+      milestoneDates = {};
+      milestoneLabels = {};
+      milestoneIds = {};
+      (list || []).forEach(function(m) {
+        if (!m || !m.name) return;
+        var lower = m.name.trim().toLowerCase();
+        milestoneLabels[lower] = m.name.trim();
+        if (m.targetDate) milestoneDates[lower] = m.targetDate;
+        if (m.id) milestoneIds[lower] = m.id;
+      });
+    }
+
+    // Recharge uniquement la liste des milestones du projet depuis Linear.
+    // Sert au drag & drop : si un milestone a été créé dans Linear pendant que l'onglet était
+    // ouvert, on le connaît quand même au moment du drop.
+    async function refreshMilestoneData() {
+      try {
+        var res = await fetch('/list-tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: authedPassword, projectId: currentProject.projectId })
+        });
+        var data = await res.json();
+        if (!res.ok) return;
+        applyMilestoneData(data.milestones);
+        updateColumnsVersionInfo();
+      } catch (err) { /* réseau : on garde les données déjà chargées */ }
+    }
+
+    // ID Linear du milestone d'une colonne de version ('next', 'release', 'prod'),
+    // résolu à partir du nom affiché en tête de colonne (même source que l'en-tête,
+    // impossible d'appliquer un milestone différent de celui qu'on voit).
+    // null = pas de version configurée pour cette colonne OU milestone absent de Linear.
+    function columnMilestoneId(colKey) {
+      var cfg = columnVersionConfig(colKey);
+      if (!cfg || !cfg.milestone) return null;
+      return milestoneIds[cfg.milestone.trim().toLowerCase()] || null;
+    }
+    // ID Linear du milestone "prochaine version" du projet courant.
     function nextMilestoneId() {
-      var next = projectMilestones().next;
-      if (!next) return null;
-      return milestoneIds[next.trim().toLowerCase()] || null;
+      return columnMilestoneId('next');
     }
     // Rôle courant (déterminé par le serveur à l'auth) : 'admin' (6 col) ou 'client' (3 col)
     var currentRole = 'admin';
@@ -2092,17 +2130,7 @@
         if (!res.ok) throw new Error(data.error || 'Erreur HTTP ' + res.status);
 
         ticketsData = data.tickets || [];
-        // Construire la map nom milestone (minuscule) → date cible ISO + nom affichable
-        milestoneDates = {};
-        milestoneLabels = {};
-        milestoneIds = {};
-        (data.milestones || []).forEach(function(m) {
-          if (!m || !m.name) return;
-          var lower = m.name.trim().toLowerCase();
-          milestoneLabels[lower] = m.name.trim();
-          if (m.targetDate) milestoneDates[lower] = m.targetDate;
-          if (m.id) milestoneIds[lower] = m.id;
-        });
+        applyMilestoneData(data.milestones);
         updateColumnsVersionInfo();
 
         var grouped = {};
@@ -2220,8 +2248,23 @@
       if (targetCol === 'backlog') {
         payload.milestoneId = null;
       } else if (targetCol === 'next') {
-        var nextMsId = nextMilestoneId();
-        if (nextMsId) payload.milestoneId = nextMsId;
+        var nextName = (columnVersionConfig('next') || {}).milestone || '';
+        if (nextName) {
+          var nextMsId = nextMilestoneId();
+          if (!nextMsId) {
+            // Le milestone peut avoir été créé dans Linear depuis le dernier chargement.
+            await refreshMilestoneData();
+            nextMsId = nextMilestoneId();
+          }
+          if (!nextMsId) {
+            // Sans id on n'envoie rien → le ticket garderait son ancien milestone (mauvaise
+            // version). On annule le déplacement et on le dit, plutôt que de mentir.
+            alert('Le milestone "' + nextName + '" n\'existe pas dans Linear pour ce projet.\n' +
+                  'Crée-le (ou corrige la config) : le ticket n\'a pas été déplacé.');
+            return;
+          }
+          payload.milestoneId = nextMsId;
+        }
       }
 
       try {
@@ -2935,7 +2978,7 @@
         .replace(/'/g, '&#39;');
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.67</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.68</div>
 </body>
 </html>
 
