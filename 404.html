@@ -1064,11 +1064,14 @@
 
     // Calcule les métriques budget à partir de tous les tickets actuels.
     // Règles :
-    //  - "Prochaine version (retenu)" = statut Prochaine version
-    //  - "Version en cours" = Version en cours + Dev in Progress + In QA + Ready for deployment
-    //  - "Deployed on Prod" suit deployedTicketScope() : version livrée → bucket prod (hors
-    //    budget), version en cours ou sans milestone → bucket "Version en cours" (le prix de la
-    //    version ne baisse donc pas quand un ticket part en prod), version passée → ignoré
+    //  - Même règle que la board : c'est le MILESTONE du ticket qui décide de sa version
+    //    (ticketVersionScope), le statut sert seulement à savoir si le ticket entre dans le
+    //    budget (backlog / Duplicate / Canceled → hors budget).
+    //  - Statuts budgétés : Prochaine version, Version en cours, Dev in Progress, In QA,
+    //    Ready for deployment, Deployed on Prod.
+    //  - "Deployed on Prod" rattaché à la version en cours (ou sans milestone) reste dans le
+    //    budget de la version en cours : le prix ne baisse pas quand un ticket part en prod.
+    //  - Version déjà livrée → bucket prod ; version passée → ignoré.
     //  - Les bugs sont inclus dans le forfait : on les compte dans leur bucket mais à 0€
     // Retourne : {next: {...}, inProgress: {...}, total: €, unestimated: n}
     function computePlanMetrics(tickets) {
@@ -1097,23 +1100,18 @@
         var t = tickets[i];
         var stateName = (t.state && t.state.name) ? t.state.name : '';
 
+        var budgeted = (stateName === 'Prochaine version')
+          || (INPROGRESS_STATES.indexOf(stateName) !== -1)
+          || (stateName === 'Deployed on Prod');
+        if (!budgeted) continue; // backlog / duplicate / canceled → hors budget
+
+        // Meme regle que getTicketColumn : le milestone decide de la version du ticket.
         var bucket = null;
-        if (stateName === 'Prochaine version') bucket = next;
-        else if (INPROGRESS_STATES.indexOf(stateName) !== -1) {
-          // Meme regle que getTicketColumn : le milestone prochaine version prime sur le
-          // statut, le ticket est donc compte dans le budget de la prochaine version.
-          bucket = isNextMilestoneTicket(t) ? next : inProg;
-        }
-        else if (stateName === 'Deployed on Prod') {
-          // Meme regle que getTicketColumn : milestone prod → version en production,
-          // milestone de la version en cours (ou aucun) → budget de la version en cours.
-          var scope = deployedTicketScope(t);
-          if (scope === 'next') bucket = next;
-          else if (scope === 'prod') bucket = prodMsLower ? prod : null;
-          else if (scope === 'current') bucket = inProg;
-          if (!bucket) continue;
-        }
-        else continue; // backlog / duplicate / canceled → hors budget
+        var scope = ticketVersionScope(t);
+        if (scope === 'next') bucket = next;
+        else if (scope === 'current') bucket = inProg;
+        else if (scope === 'prod') bucket = prodMsLower ? prod : null;
+        if (!bucket) continue; // version passee → hors budget
 
         bucket.count++;
 
@@ -1299,13 +1297,14 @@
       { key: 'dev', name: 'Dev en cours', color: '#f2c94c', droppable: false },
       { key: 'qa', name: 'En cours de qualif', color: '#BB87FC', droppable: false },
       { key: 'done', name: 'Prêt pour livraison', color: '#4ade80', droppable: false },
+      { key: 'todeploy', name: 'Reste à livrer', color: '#fb923c', droppable: false },
     ];
 
     // Mapping Linear status → column key (aligné sur les statuts actifs Linear team Riviera Flow)
     // Statuts actifs : Backlog, Prochaine version, Version en cours, Dev in Progress, In QA,
     //                  Ready for deployment, Deployed on Prod, Needs Client Input, Duplicate, Canceled.
     // Duplicate et Canceled sont volontairement non mappés (filtrés de la board).
-    // Deployed on Prod : cas particulier géré par deployedTicketScope() — le ticket reste dans
+    // Deployed on Prod : cas particulier géré par getTicketColumn() — le ticket reste dans
     // la colonne de la version en cours ("Prêt pour livraison" en admin, "Version en cours" en
     // vue client) tant qu'il n'est pas rattaché à une version déjà livrée.
     // Needs Client Input : colonne dédiée en vue admin, bannière en haut en vue client.
@@ -1344,18 +1343,44 @@
     // Colonnes qui composent la version en cours (vue admin : decoupage par statut,
     // vue client : colonne unique "Version en cours").
     var CURRENT_VERSION_COLUMNS = ['release', 'dev', 'qa', 'done'];
+    // Colonnes rattachees a une version : c'est le MILESTONE qui decide laquelle, le statut
+    // ne fait que sous-decouper la version en cours (vue admin). Les autres colonnes
+    // (backlog, attente retour client) restent pilotees par le statut seul.
+    var VERSION_COLUMNS = ['next'].concat(CURRENT_VERSION_COLUMNS);
 
     // Nom du milestone Linear rattache au ticket ('' si aucun).
     function ticketMilestoneName(ticket) {
       return (ticket && ticket.projectMilestone && ticket.projectMilestone.name)
         ? ticket.projectMilestone.name.trim() : '';
     }
+    // Version d'un ticket d'apres SON MILESTONE seul :
+    //   'next'    → milestone de la prochaine version
+    //   'current' → milestone de la version en cours
+    //   'prod'    → milestone de la version en production (deja livree)
+    //   'past'    → milestone d'une version anterieure
+    //   ''        → aucun milestone
+    function ticketMilestoneScope(ticket) {
+      var ms = ticketMilestoneName(ticket).toLowerCase();
+      if (!ms) return '';
+      var cfg = projectMilestones();
+      var nextMs = cfg.next ? cfg.next.trim().toLowerCase() : '';
+      var relMs = cfg.release ? cfg.release.trim().toLowerCase() : '';
+      var prodMs = cfg.prod ? cfg.prod.trim().toLowerCase() : '';
+      if (nextMs && ms === nextMs) return 'next';
+      if (relMs && ms === relMs) return 'current';
+      if (prodMs && ms === prodMs) return 'prod';
+      return 'past';
+    }
+
+    // Version effective pour la board ET le budget : le milestone prime toujours ; sans
+    // milestone, le ticket suit son statut et fait donc partie de la version en cours.
+    function ticketVersionScope(ticket) {
+      return ticketMilestoneScope(ticket) || 'current';
+    }
+
     // Vrai si le ticket est rattache au milestone de la prochaine version du projet.
     function isNextMilestoneTicket(ticket) {
-      var next = projectMilestones().next;
-      if (!next) return false;
-      var ms = ticketMilestoneName(ticket);
-      return !!ms && ms.toLowerCase() === next.toLowerCase();
+      return ticketMilestoneScope(ticket) === 'next';
     }
 
     // Colonne "version en cours" de la vue courante : en admin le découpage par statut se
@@ -1365,48 +1390,46 @@
       return (currentRole === 'client') ? 'release' : 'done';
     }
 
-    // Classement d'un ticket au statut "Deployed on Prod" (logique partagée board + budget) :
-    //   'next'    → rattaché au milestone de la prochaine version (règle milestone > statut)
-    //   'prod'    → rattaché au milestone de la version en production (colonne dédiée, vue client)
-    //   'current' → version en cours ou aucun milestone : reste dans la colonne de la version
-    //               en cours au lieu de disparaître de la board une fois livré
-    //   null      → version passée : hors board / hors budget
-    function deployedTicketScope(ticket) {
-      if (isNextMilestoneTicket(ticket)) return 'next';
-      var cfg = projectMilestones();
-      var ms = ticketMilestoneName(ticket).toLowerCase();
-      var prodMs = cfg.prod ? cfg.prod.trim().toLowerCase() : '';
-      var relMs = cfg.release ? cfg.release.trim().toLowerCase() : '';
-      if (prodMs && ms === prodMs) return 'prod';
-      if (!ms) return 'current';
-      if (relMs && ms === relMs) return 'current';
-      return null;
-    }
-
     // Colonne d'un ticket : par ID pour Needs Client Input, par nom de statut pour le reste.
-    // Retourne undefined si le statut n'est pas mappe (Duplicate, Canceled...).
-    // REGLE MILESTONE > STATUT : un ticket rattache au milestone de la prochaine version
-    // reste dans "Prochaine version" meme si son statut est deja plus avance
-    // (Version en cours, Dev in Progress, In QA, Ready for deployment). Le decoupage par
-    // statut ne concerne donc que les tickets du milestone de la version en cours.
+    // Retourne undefined si le ticket ne doit pas apparaitre sur la board.
+    //
+    // REGLE MILESTONE > STATUT (generalisee) : des qu'un ticket appartient a une colonne de
+    // version, c'est SON MILESTONE qui decide de la version, jamais son statut. Le statut ne
+    // sert plus qu'a sous-decouper la version en cours en vue admin (Version en cours / Dev /
+    // QA / Pret pour livraison). Consequences :
+    //   - milestone prochaine version  → "Prochaine version", meme si le statut est plus avance
+    //   - milestone version en cours   → colonnes de la version en cours, meme si le statut dit
+    //                                    "Prochaine version" (milestone reste d'un decalage)
+    //   - milestone deja livre         → vue client : "Version en production" ; vue admin : hors
+    //                                    board si le ticket est "Deployed on Prod", sinon
+    //                                    regroupe dans "Reste a livrer" (livraison incomplete)
+    //   - aucun milestone              → le statut decide (version en cours)
+    // Backlog et "Attente retour client" ne dependent jamais du milestone : un ticket en attente
+    // du client doit rester visible dans sa colonne quelle que soit sa version.
     function getTicketColumn(ticket) {
       var st = (ticket && ticket.state) ? ticket.state : {};
       var col = (st.id === NEEDS_CLIENT_INPUT_STATE_ID)
         ? STATUS_TO_COLUMN['Needs Client Input']
         : STATUS_TO_COLUMN[st.name || ''];
-      // "Deployed on Prod" : le ticket reste affiché avec la version en cours tant qu'il n'a
-      // pas basculé dans une version livrée, pour ne pas le perdre au moment de la mise en prod.
-      if ((st.name || '') === 'Deployed on Prod') {
-        var scope = deployedTicketScope(ticket);
-        if (scope === 'next') return 'next';
-        if (scope === 'prod') return (col === 'prod') ? 'prod' : undefined;
-        if (scope === 'current') return currentVersionColumnKey();
-        return undefined;
+      var deployed = (st.name || '') === 'Deployed on Prod';
+
+      // Statuts hors version (backlog, attente retour client, Duplicate/Canceled non mappes) :
+      // le statut prime, le milestone n'entre pas en jeu.
+      if (!deployed && (!col || VERSION_COLUMNS.indexOf(col) === -1)) return col;
+
+      var scope = ticketVersionScope(ticket);
+      if (scope === 'next') return 'next';
+      if (scope === 'current') {
+        // "Deployed on Prod" reste affiche avec la version en cours au lieu de disparaitre.
+        if (deployed) return currentVersionColumnKey();
+        // Statut "Prochaine version" mais milestone de la version en cours : le milestone gagne.
+        return (col === 'next') ? 'release' : col;
       }
-      if (col && CURRENT_VERSION_COLUMNS.indexOf(col) !== -1 && isNextMilestoneTicket(ticket)) {
-        return 'next';
-      }
-      return col;
+      // scope 'prod' / 'past' : version deja livree.
+      if (currentRole === 'client') return (scope === 'prod') ? 'prod' : undefined;
+      // Vue admin : la version livree sort de la board, sauf les tickets pas encore passes
+      // "Deployed on Prod" qui sont regroupes dans "Reste a livrer".
+      return deployed ? undefined : 'todeploy';
     }
     // --- Milestones affichés en tête de colonnes, PAR PROJET (clé = slug URL) ---
     // prod    = colonne "Version en production" (filtre les tickets + en-tête)
@@ -2978,7 +3001,7 @@
         .replace(/'/g, '&#39;');
     }
   </script>
-  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.70</div>
+  <div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#333;pointer-events:none;z-index:1;">v1.71</div>
 </body>
 </html>
 
